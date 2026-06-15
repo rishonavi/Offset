@@ -9,6 +9,7 @@ import { Spinner } from './components/ui'
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Properties = lazy(() => import('./pages/Properties'))
+const PropertyDetail = lazy(() => import('./pages/PropertyDetail'))
 const Expenses = lazy(() => import('./pages/Expenses'))
 const Reports = lazy(() => import('./pages/Reports'))
 
@@ -42,6 +43,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="properties" element={<Properties />} />
+        <Route path="properties/:id" element={<PropertyDetail />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="reports" element={<Reports />} />
       </Route>

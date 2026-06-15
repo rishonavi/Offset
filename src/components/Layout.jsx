@@ -11,8 +11,11 @@ import {
   Wallet,
   Info,
   Plus,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { Spinner } from './ui'
 
 const NAV = [
@@ -61,6 +64,21 @@ function Brand() {
   )
 }
 
+function ThemeToggle({ className = '' }) {
+  const { theme, toggle } = useTheme()
+  const dark = theme === 'dark'
+  return (
+    <button
+      onClick={toggle}
+      className={`grid h-9 w-9 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 ${className}`}
+      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label="Toggle theme"
+    >
+      {dark ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  )
+}
+
 function QuickAdd({ onNavigate }) {
   return (
     <Link to="/expenses?new=1" onClick={onNavigate} className="btn-primary mt-6 w-full">
@@ -88,13 +106,16 @@ export default function Layout() {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
         <Brand />
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"
-          aria-label="Open menu"
-        >
-          <Menu size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100"
+            aria-label="Open menu"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
       </header>
 
       {/* Mobile drawer */}
@@ -164,6 +185,7 @@ function UserFooter({ user, isCloud, onSignOut }) {
           </div>
           <div className="text-[11px] text-slate-400">{isCloud ? 'Signed in' : 'Demo mode'}</div>
         </div>
+        <ThemeToggle />
         {isCloud && (
           <button
             onClick={onSignOut}

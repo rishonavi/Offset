@@ -8,12 +8,16 @@
 create table if not exists public.properties (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users(id) on delete cascade default auth.uid(),
-  name        text not null,
-  type        text,
-  address     text,
-  notes       text,
-  created_at  timestamptz not null default now()
+  name            text not null,
+  type            text,
+  address         text,
+  monthly_budget  numeric(14,2),
+  notes           text,
+  created_at      timestamptz not null default now()
 );
+
+-- Add the budget column to pre-existing installs (safe to re-run).
+alter table public.properties add column if not exists monthly_budget numeric(14,2);
 
 create table if not exists public.expenses (
   id             uuid primary key default gen_random_uuid(),

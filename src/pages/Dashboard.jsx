@@ -24,13 +24,16 @@ import {
   TrendingDown,
   Plus,
   ArrowRight,
+  AlertTriangle,
 } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { formatCurrency, formatCompact, formatDate } from '../lib/format'
 import { colorForCategory, CHART_PALETTE } from '../lib/constants'
 import { totalsByCategory, totalsByProperty, monthlySeries } from '../lib/stats'
 import { sumAmount } from '../lib/filters'
+import { monthSpendByProperty, budgetStatus } from '../lib/budget'
 import { Card, EmptyState, Skeleton } from '../components/ui'
+import BudgetBar from '../components/BudgetBar'
 
 const RANGES = [
   { id: 'month', label: 'This month' },
@@ -158,6 +161,21 @@ export default function Dashboard() {
   const recent = useMemo(() => propertyScoped.slice(0, 5), [propertyScoped])
   const rangeLabel = RANGES.find((r) => r.id === range).label.toLowerCase()
 
+  const monthSpend = useMemo(() => monthSpendByProperty(expenses), [expenses])
+  const budgeted = useMemo(
+    () =>
+      properties
+        .filter((p) => Number(p.monthly_budget) > 0)
+        .filter((p) => !propertyId || p.id === propertyId)
+        .map((p) => {
+          const spent = monthSpend.get(p.id) || 0
+          return { p, spent, status: budgetStatus(spent, p.monthly_budget) }
+        })
+        .sort((a, b) => (b.status?.pct || 0) - (a.status?.pct || 0)),
+    [properties, monthSpend, propertyId],
+  )
+  const budgetAlerts = budgeted.filter((b) => b.status && b.status.level !== 'ok').length
+
   if (loading) return <DashboardSkeleton />
 
   if (properties.length === 0 && expenses.length === 0) {
@@ -235,6 +253,28 @@ export default function Dashboard() {
         <StatCard icon={TrendingUp} label="Avg / entry" value={formatCurrency(scoped.length ? total / scoped.length : 0)} accent="#10b981" />
         <StatCard icon={Tag} label="Top category" value={byCategory[0]?.name || '—'} accent="#f59e0b" />
       </div>
+
+      {/* Budgets */}
+      {budgeted.length > 0 && (
+        <Card className="p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-700">Monthly budgets</h3>
+            {budgetAlerts > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                <AlertTriangle size={12} /> {budgetAlerts} need attention
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            {budgeted.map((b) => (
+              <Link key={b.p.id} to={`/properties/${b.p.id}`} className="block transition hover:opacity-80">
+                <div className="mb-1 truncate text-sm font-medium text-slate-700">{b.p.name}</div>
+                <BudgetBar spent={b.spent} budget={b.p.monthly_budget} />
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Trend */}
       <ChartCard title="Spending over the last 12 months" empty={monthly.every((m) => m.total === 0)}>

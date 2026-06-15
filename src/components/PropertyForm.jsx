@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PROPERTY_TYPES } from '../lib/constants'
+import { currencySymbol } from '../lib/format'
 import { Field, Input, Select, Textarea, Button } from './ui'
 
 export default function PropertyForm({ initial, onSubmit, onCancel }) {
@@ -7,6 +8,7 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
     name: initial?.name || '',
     type: initial?.type || PROPERTY_TYPES[0],
     address: initial?.address || '',
+    monthly_budget: initial?.monthly_budget ?? '',
     notes: initial?.notes || '',
   })
   const [saving, setSaving] = useState(false)
@@ -23,7 +25,11 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
     setSaving(true)
     setError(null)
     try {
-      await onSubmit({ ...form, name: form.name.trim() })
+      await onSubmit({
+        ...form,
+        name: form.name.trim(),
+        monthly_budget: form.monthly_budget === '' ? null : Number(form.monthly_budget),
+      })
     } catch (err) {
       setError(err?.message || String(err))
       setSaving(false)
@@ -48,6 +54,24 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
 
       <Field label="Address">
         <Input value={form.address} onChange={set('address')} placeholder="Street, area, city" />
+      </Field>
+
+      <Field label="Monthly budget" hint="Optional — used for budget alerts on this property">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+            {currencySymbol}
+          </span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0"
+            className="pl-8"
+            value={form.monthly_budget}
+            onChange={set('monthly_budget')}
+            placeholder="0"
+          />
+        </div>
       </Field>
 
       <Field label="Notes">

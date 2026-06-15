@@ -4,6 +4,7 @@ import { Building2, Plus, Pencil, Trash2, MapPin, ArrowRight } from 'lucide-reac
 import { useData } from '../context/DataContext'
 import { formatCurrency } from '../lib/format'
 import { monthSpendByProperty } from '../lib/budget'
+import { iconForAssetType } from '../lib/assetIcon'
 import { Button, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import BudgetBar from '../components/BudgetBar'
@@ -53,11 +54,11 @@ export default function Properties() {
   return (
     <div className="animate-fade-in space-y-6">
       <PageHeader
-        title="Properties"
-        subtitle="Tap a property to see its breakdown. Each expense is logged against one of these."
+        title="Assets"
+        subtitle="Properties, vehicles, yachts, aircraft, machinery — anything with income or running costs."
         actions={
           <Button onClick={() => setModal({})}>
-            <Plus size={16} /> Add property
+            <Plus size={16} /> Add asset
           </Button>
         }
       />
@@ -65,11 +66,11 @@ export default function Properties() {
       {properties.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="No properties yet"
-          subtitle="Add your first property to start tracking its expenses."
+          title="No assets yet"
+          subtitle="Add your first asset — a property, car, yacht, aircraft or machine — to start tracking it."
           action={
             <Button onClick={() => setModal({})}>
-              <Plus size={16} /> Add property
+              <Plus size={16} /> Add asset
             </Button>
           }
         />
@@ -77,12 +78,13 @@ export default function Properties() {
         <div className="grid grid-cols-1 gap-4 stagger sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((p) => {
             const count = totals.count.get(p.id) || 0
+            const Icon = iconForAssetType(p.type)
             return (
               <Link key={p.id} to={`/properties/${p.id}`} className="card card-hover flex flex-col p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-light text-brand">
-                      <Building2 size={18} />
+                      <Icon size={18} />
                     </div>
                     <div className="min-w-0">
                       <h3 className="truncate font-semibold text-slate-900">{p.name}</h3>

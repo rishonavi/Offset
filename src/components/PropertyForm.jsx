@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { PROPERTY_TYPES } from '../lib/constants'
+import { ASSET_TYPES } from '../lib/constants'
 import { currencySymbol } from '../lib/format'
 import { Field, Input, Select, Textarea, Button } from './ui'
 
 export default function PropertyForm({ initial, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     name: initial?.name || '',
-    type: initial?.type || PROPERTY_TYPES[0],
+    type: initial?.type || ASSET_TYPES[0],
     address: initial?.address || '',
     monthly_budget: initial?.monthly_budget ?? '',
     notes: initial?.notes || '',
@@ -38,13 +38,13 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field label="Property name" required>
-        <Input value={form.name} onChange={set('name')} placeholder="e.g. Sea View Apartment, Bandra" autoFocus />
+      <Field label="Asset name" required>
+        <Input value={form.name} onChange={set('name')} placeholder="e.g. Sea View Apartment · BMW X5 · Sunseeker 60" autoFocus />
       </Field>
 
       <Field label="Type">
         <Select value={form.type} onChange={set('type')}>
-          {PROPERTY_TYPES.map((t) => (
+          {ASSET_TYPES.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>
@@ -85,7 +85,7 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
           Cancel
         </Button>
         <Button type="submit" loading={saving}>
-          {initial ? 'Save changes' : 'Add property'}
+          {initial ? 'Save changes' : 'Add asset'}
         </Button>
       </div>
     </form>

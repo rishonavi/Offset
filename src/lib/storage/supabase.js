@@ -114,6 +114,28 @@ export async function deleteExpense(id) {
   if (error) throw error
 }
 
+// ── Income ─────────────────────────────────────────────────────────
+export async function getIncome() {
+  const { data, error } = await supabase.from('income').select('*').order('date', { ascending: false })
+  if (error) throw error
+  return data
+}
+export async function addIncome(payload) {
+  const user_id = await requireUserId()
+  const { data, error } = await supabase.from('income').insert({ ...payload, user_id }).select().single()
+  if (error) throw error
+  return data
+}
+export async function updateIncome(id, payload) {
+  const { data, error } = await supabase.from('income').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+export async function deleteIncome(id) {
+  const { error } = await supabase.from('income').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ── Receipts (private bucket: store the path, serve via signed URL) ──
 export async function uploadReceipt(file) {
   const user_id = await requireUserId()

@@ -55,11 +55,11 @@ export default function Expenses() {
       {noProperties ? (
         <EmptyState
           icon={Building2}
-          title="Add a property first"
-          subtitle="Expenses are tracked per property, so create one before logging expenses."
+          title="Add an asset first"
+          subtitle="Expenses are tracked per asset, so create one before logging expenses."
           action={
             <Link to="/properties" className="btn-primary">
-              <Plus size={16} /> Add property
+              <Plus size={16} /> Add asset
             </Link>
           }
         />

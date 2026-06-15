@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   PieChart,
   Pie,
   Cell,
@@ -19,7 +20,8 @@ import {
   Wallet,
   Receipt,
   Building2,
-  Tag,
+  Banknote,
+  Scale,
   TrendingUp,
   TrendingDown,
   Plus,
@@ -29,9 +31,10 @@ import {
 import { useData } from '../context/DataContext'
 import { formatCurrency, formatCompact, formatDate } from '../lib/format'
 import { colorForCategory, CHART_PALETTE } from '../lib/constants'
-import { totalsByCategory, totalsByProperty, monthlySeries } from '../lib/stats'
+import { totalsByCategory, totalsByProperty, monthlySeries, monthlyIncomeExpense } from '../lib/stats'
 import { sumAmount } from '../lib/filters'
 import { monthSpendByProperty, budgetStatus } from '../lib/budget'
+import { outstandingTotal, isOverdue } from '../lib/payments'
 import { Card, EmptyState, Skeleton } from '../components/ui'
 import BudgetBar from '../components/BudgetBar'
 
@@ -122,7 +125,7 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
-  const { expenses, properties, loading, propertyNameById } = useData()
+  const { expenses, income, properties, loading, propertyNameById } = useData()
   const [propertyId, setPropertyId] = useState('')
   const [range, setRange] = useState('all')
 
@@ -161,6 +164,30 @@ export default function Dashboard() {
   const recent = useMemo(() => propertyScoped.slice(0, 5), [propertyScoped])
   const rangeLabel = RANGES.find((r) => r.id === range).label.toLowerCase()
 
+  const incomePropertyScoped = useMemo(
+    () => (propertyId ? income.filter((e) => e.property_id === propertyId) : income),
+    [income, propertyId],
+  )
+  const incomeScoped = useMemo(() => {
+    if (range === 'month') {
+      const s = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+      return incomePropertyScoped.filter((e) => (e.date || '') >= s)
+    }
+    if (range === 'year') {
+      const s = format(startOfYear(new Date()), 'yyyy-MM-dd')
+      return incomePropertyScoped.filter((e) => (e.date || '') >= s)
+    }
+    return incomePropertyScoped
+  }, [incomePropertyScoped, range])
+  const incomeTotal = useMemo(() => sumAmount(incomeScoped), [incomeScoped])
+  const incomeAllTime = useMemo(() => sumAmount(incomePropertyScoped), [incomePropertyScoped])
+  const netScoped = incomeTotal - total
+  const netAllTime = incomeAllTime - allTimeTotal
+  const cashflow = useMemo(
+    () => monthlyIncomeExpense(propertyScoped, incomePropertyScoped, 12),
+    [propertyScoped, incomePropertyScoped],
+  )
+
   const monthSpend = useMemo(() => monthSpendByProperty(expenses), [expenses])
   const budgeted = useMemo(
     () =>
@@ -176,6 +203,14 @@ export default function Dashboard() {
   )
   const budgetAlerts = budgeted.filter((b) => b.status && b.status.level !== 'ok').length
 
+  const payables = useMemo(() => outstandingTotal(expenses, 'expense'), [expenses])
+  const receivables = useMemo(() => outstandingTotal(income, 'income'), [income])
+  const overdue = useMemo(() => {
+    const ex = expenses.filter((e) => isOverdue(e, 'expense')).map((e) => ({ ...e, kind: 'expense', label: e.category }))
+    const inc = income.filter((e) => isOverdue(e, 'income')).map((e) => ({ ...e, kind: 'income', label: e.source }))
+    return [...ex, ...inc].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).slice(0, 6)
+  }, [expenses, income])
+
   if (loading) return <DashboardSkeleton />
 
   if (properties.length === 0 && expenses.length === 0) {
@@ -185,10 +220,10 @@ export default function Dashboard() {
         <EmptyState
           icon={Building2}
           title="Welcome to Offset"
-          subtitle="Start by adding a property, then log expenses against it. Your charts and totals will appear here."
+          subtitle="Start by adding an asset — property, vehicle, yacht and more — then log its income & expenses. Your charts and totals appear here."
           action={
             <Link to="/properties" className="btn-primary">
-              <Plus size={16} /> Add your first property
+              <Plus size={16} /> Add your first asset
             </Link>
           }
         />
@@ -203,7 +238,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
           <select className="field-input h-9 w-auto py-1" value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="">All properties</option>
+            <option value="">All assets</option>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -233,9 +268,12 @@ export default function Dashboard() {
           <div>
             <p className="eyebrow">{greeting()}</p>
             <p className="mt-4 text-[0.7rem] font-semibold uppercase tracking-[2px] text-white/50">
-              Portfolio total · {properties.length} {properties.length === 1 ? 'property' : 'properties'}
+              Net position · {properties.length} {properties.length === 1 ? 'asset' : 'assets'}
             </p>
-            <div className="mt-1 font-serif text-4xl font-bold tracking-tight sm:text-5xl">{formatCurrency(allTimeTotal)}</div>
+            <div className="mt-1 font-serif text-4xl font-bold tracking-tight sm:text-5xl">{formatCurrency(netAllTime)}</div>
+            <p className="mt-2 text-xs text-white/60">
+              {formatCurrency(incomeAllTime)} income · {formatCurrency(allTimeTotal)} expenses
+            </p>
           </div>
           <div className="border border-white/10 bg-white/5 p-4 backdrop-blur sm:min-w-56">
             <div className="text-[0.65rem] font-semibold uppercase tracking-[1.5px] text-white/50">Spent this month</div>
@@ -249,10 +287,10 @@ export default function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 stagger lg:grid-cols-4">
-        <StatCard icon={Wallet} label={`Total spent (${rangeLabel})`} value={formatCurrency(total)} accent="#B8862F" />
-        <StatCard icon={Receipt} label="Entries" value={String(scoped.length)} accent="#2F6F6B" />
-        <StatCard icon={TrendingUp} label="Avg / entry" value={formatCurrency(scoped.length ? total / scoped.length : 0)} accent="#9C5B33" />
-        <StatCard icon={Tag} label="Top category" value={byCategory[0]?.name || '—'} accent="#0A1828" />
+        <StatCard icon={Banknote} label={`Income (${rangeLabel})`} value={formatCurrency(incomeTotal)} accent="#2F8F6B" />
+        <StatCard icon={Wallet} label={`Expenses (${rangeLabel})`} value={formatCurrency(total)} accent="#C5A059" />
+        <StatCard icon={Scale} label={`Net (${rangeLabel})`} value={formatCurrency(netScoped)} accent={netScoped >= 0 ? '#2F8F6B' : '#C0492F'} />
+        <StatCard icon={Receipt} label="Expense entries" value={String(scoped.length)} accent="#0A1828" />
       </div>
 
       {/* Budgets */}
@@ -277,6 +315,46 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* Payments due */}
+      {(payables > 0 || receivables > 0) && (
+        <Card className="p-5">
+          <h3 className="mb-4 text-sm font-semibold text-slate-700">Payments due</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border-l-2 border-gold pl-3">
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">You owe · unpaid expenses</div>
+              <div className="font-serif text-2xl font-bold text-slate-900">{formatCurrency(payables)}</div>
+            </div>
+            <div className="border-l-2 border-emerald-500 pl-3">
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">Owed to you · pending income</div>
+              <div className="font-serif text-2xl font-bold text-emerald-700">{formatCurrency(receivables)}</div>
+            </div>
+          </div>
+          {overdue.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <div className="mb-2 flex items-center gap-1 text-xs font-semibold text-red-600">
+                <AlertTriangle size={13} /> Overdue
+              </div>
+              <div className="divide-y divide-slate-100">
+                {overdue.map((o) => (
+                  <Link
+                    key={o.id}
+                    to={`/properties/${o.property_id}`}
+                    className="flex items-center justify-between gap-3 py-2 text-sm transition hover:opacity-80"
+                  >
+                    <span className="min-w-0 truncate text-slate-700">
+                      {propertyNameById(o.property_id) || '—'} · {o.label || (o.kind === 'income' ? 'Income' : 'Expense')}
+                    </span>
+                    <span className="shrink-0 font-semibold" style={{ color: o.kind === 'income' ? '#2F8F6B' : '#C0492F' }}>
+                      {formatCurrency(o.amount)} · {formatDate(o.due_date)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Trend */}
       <ChartCard title="Spending over the last 12 months" empty={monthly.every((m) => m.total === 0)}>
         <ResponsiveContainer>
@@ -293,6 +371,28 @@ export default function Dashboard() {
             <Tooltip formatter={(v) => [formatCurrency(v), 'Spent']} contentStyle={tooltipStyle} />
             <Area type="monotone" dataKey="total" stroke="#C5A059" strokeWidth={2.5} fill="url(#g)" />
           </AreaChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      {/* Income vs expenses */}
+      <ChartCard
+        title="Income vs expenses (last 12 months)"
+        empty={cashflow.every((m) => m.income === 0 && m.expense === 0)}
+      >
+        <ResponsiveContainer>
+          <BarChart data={cashflow} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f7" />
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={formatCompact} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={48} />
+            <Tooltip
+              formatter={(v, n) => [formatCurrency(v), n === 'income' ? 'Income' : 'Expense']}
+              contentStyle={tooltipStyle}
+              cursor={{ fill: '#f1f5f9' }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} formatter={(v) => (v === 'income' ? 'Income' : 'Expense')} />
+            <Bar dataKey="income" fill="#2F8F6B" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="expense" fill="#C5A059" radius={[3, 3, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 

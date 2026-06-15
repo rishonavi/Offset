@@ -2,8 +2,9 @@ import { Suspense, useState } from 'react'
 import { NavLink, Outlet, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Building2,
+  Boxes,
   Receipt,
+  Banknote,
   PieChart,
   LogOut,
   Menu,
@@ -20,8 +21,9 @@ import { Spinner } from './ui'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/properties', label: 'Properties', icon: Building2 },
+  { to: '/properties', label: 'Assets', icon: Boxes },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
+  { to: '/income', label: 'Income', icon: Banknote },
   { to: '/reports', label: 'Reports & Export', icon: PieChart },
 ]
 

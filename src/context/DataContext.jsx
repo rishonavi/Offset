@@ -13,6 +13,7 @@ export function DataProvider({ children }) {
   const { user } = useAuth()
   const [properties, setProperties] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [income, setIncome] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -20,9 +21,10 @@ export function DataProvider({ children }) {
     setLoading(true)
     setError(null)
     try {
-      const [p, e] = await Promise.all([db.getProperties(), db.getExpenses()])
+      const [p, e, inc] = await Promise.all([db.getProperties(), db.getExpenses(), db.getIncome()])
       setProperties([...p].sort(byNameAsc))
       setExpenses([...e].sort(byDateDesc))
+      setIncome([...inc].sort(byDateDesc))
     } catch (err) {
       setError(err?.message || String(err))
     } finally {
@@ -54,6 +56,7 @@ export function DataProvider({ children }) {
     await db.deleteProperty(id)
     setProperties((prev) => prev.filter((p) => p.id !== id))
     setExpenses((prev) => prev.filter((e) => e.property_id !== id))
+    setIncome((prev) => prev.filter((e) => e.property_id !== id))
   }
 
   // ── Expenses ──
@@ -72,10 +75,27 @@ export function DataProvider({ children }) {
     setExpenses((prev) => prev.filter((e) => e.id !== id))
   }
 
+  // ── Income ──
+  const addIncome = async (data) => {
+    const row = await db.addIncome(data)
+    setIncome((prev) => [row, ...prev].sort(byDateDesc))
+    return row
+  }
+  const updateIncome = async (id, data) => {
+    const row = await db.updateIncome(id, data)
+    setIncome((prev) => prev.map((e) => (e.id === id ? row : e)).sort(byDateDesc))
+    return row
+  }
+  const deleteIncome = async (id) => {
+    await db.deleteIncome(id)
+    setIncome((prev) => prev.filter((e) => e.id !== id))
+  }
+
   const value = useMemo(
     () => ({
       properties,
       expenses,
+      income,
       loading,
       error,
       refresh,
@@ -86,8 +106,11 @@ export function DataProvider({ children }) {
       addExpense,
       updateExpense,
       deleteExpense,
+      addIncome,
+      updateIncome,
+      deleteIncome,
     }),
-    [properties, expenses, loading, error, refresh, propertyNameById],
+    [properties, expenses, income, loading, error, refresh, propertyNameById],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

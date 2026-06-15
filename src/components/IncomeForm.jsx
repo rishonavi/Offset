@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Paperclip, X } from 'lucide-react'
-import { CATEGORIES, PAYMENT_METHODS } from '../lib/constants'
+import { INCOME_SOURCES, PAYMENT_METHODS } from '../lib/constants'
 import { currencySymbol, todayISO } from '../lib/format'
 import { db } from '../lib/storage'
 import { Field, Input, Select, Textarea, Button } from './ui'
 
-export default function ExpenseForm({ initial, properties, defaultPropertyId, onSubmit, onCancel }) {
+export default function IncomeForm({ initial, properties, defaultPropertyId, onSubmit, onCancel }) {
   const [form, setForm] = useState({
     property_id: initial?.property_id || defaultPropertyId || (properties[0]?.id ?? ''),
     date: initial?.date || todayISO(),
     amount: initial?.amount ?? '',
-    category: initial?.category || '',
-    vendor: initial?.vendor || '',
+    source: initial?.source || 'Rent',
+    payer: initial?.payer || '',
     payment_method: initial?.payment_method || '',
-    status: initial?.status || 'paid',
+    status: initial?.status || 'received',
     due_date: initial?.due_date || '',
     description: initial?.description || '',
   })
@@ -25,7 +25,6 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  // Resolve a viewable URL for an already-saved receipt (signed URL in cloud mode).
   useEffect(() => {
     let active = true
     if (existingReceipt && !file) {
@@ -52,7 +51,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
     e.preventDefault()
     if (!form.property_id) return setError('Please choose a property.')
     if (!form.date) return setError('Please choose a date.')
-    if (!form.category) return setError('Please choose a category.')
+    if (!form.source) return setError('Please choose a source.')
     const amount = Number(form.amount)
     if (!amount || amount <= 0) return setError('Enter an amount greater than zero.')
 
@@ -61,16 +60,15 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
     try {
       let receipt_url = existingReceipt
       if (file) receipt_url = await db.uploadReceipt(file)
-
       await onSubmit({
         property_id: form.property_id,
         date: form.date,
         amount,
-        category: form.category,
-        vendor: form.vendor.trim(),
+        source: form.source,
+        payer: form.payer.trim(),
         payment_method: form.payment_method,
         status: form.status,
-        due_date: form.status === 'unpaid' ? form.due_date || null : null,
+        due_date: form.status === 'pending' ? form.due_date || null : null,
         description: form.description.trim(),
         receipt_url: receipt_url || null,
       })
@@ -97,7 +95,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
           <Input type="date" value={form.date} onChange={set('date')} max={todayISO()} />
         </Field>
 
-        <Field label="Amount" required>
+        <Field label="Amount received" required>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
               {currencySymbol}
@@ -115,21 +113,18 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
           </div>
         </Field>
 
-        <Field label="Category" required>
-          <Select value={form.category} onChange={set('category')}>
-            <option value="" disabled>
-              Select category…
-            </option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
+        <Field label="Source" required>
+          <Select value={form.source} onChange={set('source')}>
+            {INCOME_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {s}
               </option>
             ))}
           </Select>
         </Field>
 
-        <Field label="Vendor / Payee">
-          <Input value={form.vendor} onChange={set('vendor')} placeholder="e.g. Asian Paints" />
+        <Field label="Received from (tenant / payer)">
+          <Input value={form.payer} onChange={set('payer')} placeholder="e.g. Mr. Sharma" />
         </Field>
 
         <Field label="Payment method">
@@ -143,11 +138,11 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
           </Select>
         </Field>
 
-        <Field label="Payment status">
+        <Field label="Status">
           <div className="flex gap-2">
             {[
-              { v: 'paid', label: 'Paid' },
-              { v: 'unpaid', label: 'Unpaid' },
+              { v: 'received', label: 'Received' },
+              { v: 'pending', label: 'Pending' },
             ].map((o) => (
               <button
                 type="button"
@@ -155,7 +150,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
                 onClick={() => setForm((f) => ({ ...f, status: o.v }))}
                 className={`flex-1 border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition ${
                   form.status === o.v
-                    ? o.v === 'paid'
+                    ? o.v === 'received'
                       ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-gold bg-brand-light text-gold'
                     : 'border-border-light text-slate-500 hover:border-slate-300'
@@ -167,7 +162,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
           </div>
         </Field>
 
-        {form.status === 'unpaid' && (
+        {form.status === 'pending' && (
           <Field label="Due date">
             <Input type="date" value={form.due_date} onChange={set('due_date')} />
           </Field>
@@ -175,26 +170,26 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
       </div>
 
       <Field label="Description / Notes">
-        <Textarea rows={2} value={form.description} onChange={set('description')} placeholder="Optional details" />
+        <Textarea rows={2} value={form.description} onChange={set('description')} placeholder="e.g. June rent" />
       </Field>
 
-      <Field label="Receipt / bill photo" hint="JPG, PNG or PDF">
+      <Field label="Proof / receipt" hint="JPG, PNG or PDF">
         {receiptPreview || existingReceipt ? (
-          <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="flex items-center gap-3 border border-border-light bg-slate-50 px-3 py-2">
             <Paperclip size={16} className="text-slate-400" />
             <a
               href={receiptPreview || '#'}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 truncate text-sm font-medium text-brand hover:underline"
+              className="flex-1 truncate text-sm font-medium text-gold hover:underline"
             >
-              {file ? file.name : 'View attached receipt'}
+              {file ? file.name : 'View attached file'}
             </a>
             <button
               type="button"
               onClick={clearReceipt}
-              className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              title="Remove receipt"
+              className="grid h-7 w-7 place-items-center text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+              title="Remove"
             >
               <X size={15} />
             </button>
@@ -204,7 +199,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
             type="file"
             accept="image/*,.pdf"
             onChange={onPickFile}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-light file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand hover:file:bg-indigo-100"
+            className="block w-full text-sm text-slate-600 file:mr-3 file:border-0 file:bg-brand-light file:px-3 file:py-2 file:text-sm file:font-semibold file:text-gold"
           />
         )}
       </Field>
@@ -216,7 +211,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
           Cancel
         </Button>
         <Button type="submit" loading={saving}>
-          {initial ? 'Save changes' : 'Add expense'}
+          {initial ? 'Save changes' : 'Add income'}
         </Button>
       </div>
     </form>

@@ -49,6 +49,36 @@ drop policy if exists "own expenses" on public.expenses;
 create policy "own expenses" on public.expenses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- ── Income (rent & other income) ─────────────────────────────────
+create table if not exists public.income (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references auth.users(id) on delete cascade default auth.uid(),
+  property_id    uuid not null references public.properties(id) on delete cascade,
+  date           date not null,
+  amount         numeric(14,2) not null check (amount >= 0),
+  source         text,
+  payer          text,
+  payment_method text,
+  description    text,
+  receipt_url    text,
+  created_at     timestamptz not null default now()
+);
+
+create index if not exists income_user_idx     on public.income(user_id);
+create index if not exists income_property_idx  on public.income(property_id);
+create index if not exists income_date_idx      on public.income(date);
+
+alter table public.income enable row level security;
+drop policy if exists "own income" on public.income;
+create policy "own income" on public.income
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ── Payment tracking: status + due date (safe to re-run) ─────────
+alter table public.expenses add column if not exists status   text default 'paid';
+alter table public.expenses add column if not exists due_date date;
+alter table public.income   add column if not exists status   text default 'received';
+alter table public.income   add column if not exists due_date date;
+
 -- ── Receipt storage (private bucket) ─────────────────────────────
 insert into storage.buckets (id, name, public)
 values ('receipts', 'receipts', false)

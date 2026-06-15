@@ -13,18 +13,21 @@ import {
   Cell,
 } from 'recharts'
 import { startOfMonth, format } from 'date-fns'
-import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Wallet, Receipt, CalendarDays, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Wallet, Receipt, CalendarDays, Banknote, Scale } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { formatCurrency, formatCompact } from '../lib/format'
 import { colorForCategory } from '../lib/constants'
 import { totalsByCategory, monthlySeries } from '../lib/stats'
 import { sumAmount } from '../lib/filters'
+import { iconForAssetType } from '../lib/assetIcon'
 import { Card, Button, EmptyState, Spinner } from '../components/ui'
 import BudgetBar from '../components/BudgetBar'
 import ExpenseTable from '../components/ExpenseTable'
 import Modal from '../components/Modal'
 import ExpenseForm from '../components/ExpenseForm'
 import PropertyForm from '../components/PropertyForm'
+import IncomeTable from '../components/IncomeTable'
+import IncomeForm from '../components/IncomeForm'
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -52,8 +55,23 @@ function StatCard({ icon: Icon, label, value, accent = '#C5A059' }) {
 export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { properties, expenses, loading, propertyNameById, updateProperty, deleteProperty, addExpense, updateExpense, deleteExpense } = useData()
+  const {
+    properties,
+    expenses,
+    income,
+    loading,
+    propertyNameById,
+    updateProperty,
+    deleteProperty,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    addIncome,
+    updateIncome,
+    deleteIncome,
+  } = useData()
   const [expenseModal, setExpenseModal] = useState(null) // null | { editing }
+  const [incomeModal, setIncomeModal] = useState(null)
   const [editProperty, setEditProperty] = useState(false)
 
   const property = useMemo(() => properties.find((p) => p.id === id), [properties, id])
@@ -66,6 +84,9 @@ export default function PropertyDetail() {
   }, [items])
   const byCategory = useMemo(() => totalsByCategory(items), [items])
   const monthly = useMemo(() => monthlySeries(items, 12), [items])
+  const incomeItems = useMemo(() => income.filter((e) => e.property_id === id), [income, id])
+  const incomeTotal = useMemo(() => sumAmount(incomeItems), [incomeItems])
+  const net = incomeTotal - total
 
   if (loading) return <Spinner />
 
@@ -74,11 +95,11 @@ export default function PropertyDetail() {
       <div className="animate-fade-in">
         <EmptyState
           icon={MapPin}
-          title="Property not found"
+          title="Asset not found"
           subtitle="It may have been deleted."
           action={
             <Link to="/properties" className="btn-primary">
-              Back to properties
+              Back to assets
             </Link>
           }
         />
@@ -86,10 +107,18 @@ export default function PropertyDetail() {
     )
   }
 
+  const AssetIcon = iconForAssetType(property.type)
+
   const onExpenseSubmit = async (data) => {
     if (expenseModal?.editing) await updateExpense(expenseModal.editing.id, data)
     else await addExpense(data)
     setExpenseModal(null)
+  }
+
+  const onIncomeSubmit = async (data) => {
+    if (incomeModal?.editing) await updateIncome(incomeModal.editing.id, data)
+    else await addIncome(data)
+    setIncomeModal(null)
   }
 
   const onPropertySubmit = async (data) => {
@@ -110,20 +139,25 @@ export default function PropertyDetail() {
   return (
     <div className="animate-fade-in space-y-6">
       <Link to="/properties" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
-        <ArrowLeft size={15} /> All properties
+        <ArrowLeft size={15} /> All assets
       </Link>
 
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-            {property.type && <span>{property.type}</span>}
-            {property.address && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin size={13} /> {property.address}
-              </span>
-            )}
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-light text-brand">
+            <AssetIcon size={22} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+              {property.type && <span>{property.type}</span>}
+              {property.address && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={13} /> {property.address}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -146,7 +180,7 @@ export default function PropertyDetail() {
         </Card>
       ) : (
         <Card className="flex items-center justify-between p-4 text-sm">
-          <span className="text-slate-500">No monthly budget set for this property.</span>
+          <span className="text-slate-500">No monthly budget set for this asset.</span>
           <button onClick={() => setEditProperty(true)} className="font-medium text-brand hover:underline">
             Set a budget
           </button>
@@ -155,10 +189,10 @@ export default function PropertyDetail() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon={Wallet} label="Total spent" value={formatCurrency(total)} accent="#B8862F" />
-        <StatCard icon={CalendarDays} label="This month" value={formatCurrency(thisMonth)} accent="#0A1828" />
-        <StatCard icon={Receipt} label="Entries" value={String(items.length)} accent="#2F6F6B" />
-        <StatCard icon={TrendingUp} label="Avg / entry" value={formatCurrency(items.length ? total / items.length : 0)} accent="#9C5B33" />
+        <StatCard icon={Banknote} label="Income" value={formatCurrency(incomeTotal)} accent="#2F8F6B" />
+        <StatCard icon={Wallet} label="Expenses" value={formatCurrency(total)} accent="#C5A059" />
+        <StatCard icon={Scale} label="Net" value={formatCurrency(net)} accent={net >= 0 ? '#2F8F6B' : '#C0492F'} />
+        <StatCard icon={CalendarDays} label="Spent this month" value={formatCurrency(thisMonth)} accent="#0A1828" />
       </div>
 
       {/* Charts */}
@@ -233,6 +267,35 @@ export default function PropertyDetail() {
         )}
       </div>
 
+      {/* Income */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700">Income ({incomeItems.length})</h3>
+          <Button variant="ghost" onClick={() => setIncomeModal({})}>
+            <Plus size={15} /> Add income
+          </Button>
+        </div>
+        {incomeItems.length === 0 ? (
+          <EmptyState
+            icon={Banknote}
+            title="No income for this asset"
+            subtitle="Log rent or other income to track net profit."
+            action={
+              <Button onClick={() => setIncomeModal({})}>
+                <Plus size={16} /> Add income
+              </Button>
+            }
+          />
+        ) : (
+          <IncomeTable
+            income={incomeItems}
+            propertyNameById={propertyNameById}
+            onEdit={(e) => setIncomeModal({ editing: e })}
+            onDelete={deleteIncome}
+          />
+        )}
+      </div>
+
       <Modal
         open={!!expenseModal}
         onClose={() => setExpenseModal(null)}
@@ -250,8 +313,25 @@ export default function PropertyDetail() {
         )}
       </Modal>
 
-      <Modal open={editProperty} onClose={() => setEditProperty(false)} title="Edit property">
+      <Modal open={editProperty} onClose={() => setEditProperty(false)} title="Edit asset">
         {editProperty && <PropertyForm initial={property} onSubmit={onPropertySubmit} onCancel={() => setEditProperty(false)} />}
+      </Modal>
+
+      <Modal
+        open={!!incomeModal}
+        onClose={() => setIncomeModal(null)}
+        title={incomeModal?.editing ? 'Edit income' : 'Add income'}
+        maxWidth="max-w-2xl"
+      >
+        {incomeModal && (
+          <IncomeForm
+            initial={incomeModal.editing}
+            properties={properties}
+            defaultPropertyId={property.id}
+            onSubmit={onIncomeSubmit}
+            onCancel={() => setIncomeModal(null)}
+          />
+        )}
       </Modal>
     </div>
   )

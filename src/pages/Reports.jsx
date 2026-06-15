@@ -20,7 +20,7 @@ import FilterBar from '../components/FilterBar'
 const PREVIEW_LIMIT = 100
 
 export default function Reports() {
-  const { expenses, properties, loading, propertyNameById, addProperty, addExpense } = useData()
+  const { expenses, income, properties, loading, propertyNameById, addProperty, addExpense, addIncome } = useData()
   const [filters, setFilters] = useState(emptyFilters)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
@@ -93,10 +93,10 @@ export default function Reports() {
     setDriveBusy(true)
     setDriveMsg(null)
     try {
-      await backupToDrive({ version: 1, exportedAt: new Date().toISOString(), properties, expenses })
+      await backupToDrive({ version: 1, exportedAt: new Date().toISOString(), properties, expenses, income })
       setDriveMsg({
         ok: true,
-        text: `Backed up ${properties.length} properties and ${expenses.length} expenses to Google Drive.`,
+        text: `Backed up ${properties.length} assets, ${expenses.length} expenses and ${income.length} income entries to Google Drive.`,
       })
     } catch (err) {
       setDriveMsg({ ok: false, text: err?.message || String(err) })
@@ -119,6 +119,7 @@ export default function Reports() {
       const nameToId = new Map(properties.map((p) => [p.name.trim().toLowerCase(), p.id]))
       let createdProps = 0
       let addedExp = 0
+      let addedInc = 0
       for (const p of data.properties || []) {
         const key = (p.name || '').trim().toLowerCase()
         if (!key) continue
@@ -145,14 +146,34 @@ export default function Reports() {
           category: e.category || 'Other',
           vendor: e.vendor || '',
           payment_method: e.payment_method || '',
+          status: e.status || 'paid',
+          due_date: e.due_date || null,
           description: e.description || '',
           receipt_url: null,
         })
         addedExp += 1
       }
+      for (const e of data.income || []) {
+        const nm = (oldIdToName.get(e.property_id) || '').trim().toLowerCase()
+        const pid = nameToId.get(nm)
+        if (!pid) continue
+        await addIncome({
+          property_id: pid,
+          date: e.date,
+          amount: Number(e.amount) || 0,
+          source: e.source || 'Other',
+          payer: e.payer || '',
+          payment_method: e.payment_method || '',
+          status: e.status || 'received',
+          due_date: e.due_date || null,
+          description: e.description || '',
+          receipt_url: null,
+        })
+        addedInc += 1
+      }
       setDriveMsg({
         ok: true,
-        text: `Restored ${addedExp} expenses${createdProps ? `, created ${createdProps} properties` : ''} from Drive.`,
+        text: `Restored ${addedExp} expenses, ${addedInc} income${createdProps ? `, created ${createdProps} assets` : ''} from Drive.`,
       })
     } catch (err) {
       setDriveMsg({ ok: false, text: err?.message || String(err) })

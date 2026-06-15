@@ -1,13 +1,15 @@
 export const CURRENCY = import.meta.env.VITE_CURRENCY || 'INR'
 export const LOCALE = import.meta.env.VITE_LOCALE || 'en-IN'
 
-export const PROPERTY_TYPES = [
-  'Apartment / Flat',
-  'Villa / House',
-  'Commercial',
-  'Office',
-  'Shop / Retail',
-  'Plot / Land',
+export const ASSET_TYPES = [
+  'Real Estate — Apartment / Flat',
+  'Real Estate — Villa / House',
+  'Real Estate — Commercial',
+  'Land / Plot',
+  'Vehicle / Car',
+  'Yacht / Boat',
+  'Aircraft',
+  'Machinery / Equipment',
   'Other',
 ]
 
@@ -59,3 +61,27 @@ export const CHART_PALETTE = [
 
 export const colorForCategory = (cat, i = 0) =>
   CATEGORY_COLORS[cat] || CHART_PALETTE[i % CHART_PALETTE.length]
+
+export const INCOME_SOURCES = [
+  'Rent',
+  'Security Deposit',
+  'Maintenance Charges',
+  'Parking',
+  'Sale Proceeds',
+  'Other',
+]
+
+export const INCOME_COLORS = {
+  'Rent': '#2F6F6B',
+  'Security Deposit': '#46618A',
+  'Maintenance Charges': '#7C8A5A',
+  'Parking': '#A87B2E',
+  'Sale Proceeds': '#9C5B33',
+  'Other': '#7A7165',
+}
+
+export const colorForSource = (s, i = 0) =>
+  INCOME_COLORS[s] || CHART_PALETTE[i % CHART_PALETTE.length]
+
+// Semantic colours for income vs expense vs net.
+export const FLOW_COLORS = { income: '#2F8F6B', expense: '#C5A059', net: '#0A1828' }

@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Properties = lazy(() => import('./pages/Properties'))
 const PropertyDetail = lazy(() => import('./pages/PropertyDetail'))
 const Expenses = lazy(() => import('./pages/Expenses'))
+const Income = lazy(() => import('./pages/Income'))
 const Reports = lazy(() => import('./pages/Reports'))
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="properties" element={<Properties />} />
         <Route path="properties/:id" element={<PropertyDetail />} />
         <Route path="expenses" element={<Expenses />} />
+        <Route path="income" element={<Income />} />
         <Route path="reports" element={<Reports />} />
       </Route>
 

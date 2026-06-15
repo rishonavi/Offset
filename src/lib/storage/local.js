@@ -3,6 +3,7 @@
 
 const PROPS_KEY = 'pl_properties'
 const EXP_KEY = 'pl_expenses'
+const INC_KEY = 'pl_income'
 
 const DEMO_USER = { id: 'local-user', email: 'demo@local' }
 
@@ -57,8 +58,9 @@ export async function updateProperty(id, payload) {
 }
 export async function deleteProperty(id) {
   write(PROPS_KEY, read(PROPS_KEY).filter((p) => p.id !== id))
-  // cascade: remove this property's expenses too
+  // cascade: remove this property's expenses and income too
   write(EXP_KEY, read(EXP_KEY).filter((e) => e.property_id !== id))
+  write(INC_KEY, read(INC_KEY).filter((e) => e.property_id !== id))
 }
 
 // ── Expenses ───────────────────────────────────────────────────────
@@ -90,4 +92,22 @@ export async function uploadReceipt(file) {
 }
 export async function getReceiptUrl(stored) {
   return stored || null // already a data URL
+}
+
+// ── Income ─────────────────────────────────────────────────────────
+export async function getIncome() {
+  return read(INC_KEY).sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+}
+export async function addIncome(payload) {
+  const row = { id: uid(), created_at: new Date().toISOString(), ...payload }
+  write(INC_KEY, [...read(INC_KEY), row])
+  return row
+}
+export async function updateIncome(id, payload) {
+  const list = read(INC_KEY).map((e) => (e.id === id ? { ...e, ...payload } : e))
+  write(INC_KEY, list)
+  return list.find((e) => e.id === id)
+}
+export async function deleteIncome(id) {
+  write(INC_KEY, read(INC_KEY).filter((e) => e.id !== id))
 }

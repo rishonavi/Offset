@@ -1,0 +1,128 @@
+// Supabase backend — Postgres tables + Auth + private Storage bucket.
+import { supabase } from '../supabaseClient'
+
+const RECEIPT_BUCKET = 'receipts'
+
+async function requireUserId() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  return user.id
+}
+
+// ── Auth ───────────────────────────────────────────────────────────
+export async function getCurrentUser() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return user
+}
+export function onAuthStateChange(cb) {
+  supabase.auth.getSession().then(({ data: { session } }) => cb(session?.user ?? null))
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null))
+  return () => subscription.unsubscribe()
+}
+export async function signIn({ email, password }) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw error
+  return data.user
+}
+export async function signUp({ email, password }) {
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if (error) throw error
+  return data // { user, session } — session may be null if email confirmation is on
+}
+export async function signOut() {
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
+}
+
+// ── Properties ─────────────────────────────────────────────────────
+export async function getProperties() {
+  const { data, error } = await supabase.from('properties').select('*').order('name')
+  if (error) throw error
+  return data
+}
+export async function addProperty(payload) {
+  const user_id = await requireUserId()
+  const { data, error } = await supabase
+    .from('properties')
+    .insert({ ...payload, user_id })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+export async function updateProperty(id, payload) {
+  const { data, error } = await supabase
+    .from('properties')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+export async function deleteProperty(id) {
+  const { error } = await supabase.from('properties').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── Expenses ───────────────────────────────────────────────────────
+export async function getExpenses() {
+  const { data, error } = await supabase
+    .from('expenses')
+    .select('*')
+    .order('date', { ascending: false })
+  if (error) throw error
+  return data
+}
+export async function addExpense(payload) {
+  const user_id = await requireUserId()
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({ ...payload, user_id })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+export async function updateExpense(id, payload) {
+  const { data, error } = await supabase
+    .from('expenses')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+export async function deleteExpense(id) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── Receipts (private bucket: store the path, serve via signed URL) ──
+export async function uploadReceipt(file) {
+  const user_id = await requireUserId()
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
+  const path = `${user_id}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage
+    .from(RECEIPT_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false })
+  if (error) throw error
+  return path // stored in expenses.receipt_url
+}
+export async function getReceiptUrl(stored) {
+  if (!stored) return null
+  // Older/imported rows might already hold a full URL.
+  if (/^https?:|^data:/.test(stored)) return stored
+  const { data, error } = await supabase.storage
+    .from(RECEIPT_BUCKET)
+    .createSignedUrl(stored, 60 * 60)
+  if (error) return null
+  return data.signedUrl
+}

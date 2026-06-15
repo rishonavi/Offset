@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Plus, Receipt, Building2 } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount, hasActiveFilters } from '../lib/filters'
 import { formatCurrency } from '../lib/format'
 import { Button, Card, EmptyState, Spinner } from '../components/ui'
+import PageHeader from '../components/PageHeader'
 import FilterBar from '../components/FilterBar'
 import ExpenseTable from '../components/ExpenseTable'
 import Modal from '../components/Modal'
@@ -14,6 +15,15 @@ export default function Expenses() {
   const { expenses, properties, loading, addExpense, updateExpense, deleteExpense, propertyNameById } = useData()
   const [filters, setFilters] = useState(emptyFilters)
   const [modal, setModal] = useState(null) // null | { editing }
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Open the add form when arriving via the sidebar/FAB quick-add (?new=1).
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      if (properties.length > 0) setModal({})
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, properties.length, setSearchParams])
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
@@ -30,18 +40,17 @@ export default function Expenses() {
 
   return (
     <div className="animate-fade-in space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Expenses</h1>
-          <p className="text-sm text-slate-500">
-            {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
-            {hasActiveFilters(filters) ? ' (filtered)' : ''} · {formatCurrency(total)}
-          </p>
-        </div>
-        <Button onClick={() => setModal({})} disabled={noProperties}>
-          <Plus size={16} /> Add expense
-        </Button>
-      </div>
+      <PageHeader
+        title="Expenses"
+        subtitle={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}${
+          hasActiveFilters(filters) ? ' (filtered)' : ''
+        } · ${formatCurrency(total)}`}
+        actions={
+          <Button onClick={() => setModal({})} disabled={noProperties}>
+            <Plus size={16} /> Add expense
+          </Button>
+        }
+      />
 
       {noProperties ? (
         <EmptyState
@@ -70,9 +79,7 @@ export default function Expenses() {
               }
             />
           ) : filtered.length === 0 ? (
-            <Card className="p-10 text-center text-sm text-slate-500">
-              No expenses match these filters.
-            </Card>
+            <Card className="p-10 text-center text-sm text-slate-500">No expenses match these filters.</Card>
           ) : (
             <ExpenseTable
               expenses={filtered}

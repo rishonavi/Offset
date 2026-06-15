@@ -14,9 +14,14 @@ html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: #f1f5f9;
+  background-color: #f4f5fb;
+  background-image:
+    radial-gradient(900px circle at 0% 0%, rgba(79, 70, 229, 0.06), transparent 45%),
+    radial-gradient(900px circle at 100% 0%, rgba(14, 165, 233, 0.05), transparent 40%);
+  background-attachment: fixed;
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
 }
 
 /* Reusable form control + button styles (Tailwind v4 @apply) */
@@ -25,31 +30,34 @@ body {
     @apply block text-sm font-medium text-slate-700 mb-1;
   }
   .field-input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900
            shadow-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/30
            placeholder:text-slate-400;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+           transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
-           bg-brand text-white shadow-sm hover:bg-brand-dark;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+           transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none
+           bg-brand text-white shadow-sm shadow-brand/30 hover:bg-brand-dark;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+           transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none
            bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+           transition active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none
            bg-red-600 text-white hover:bg-red-700;
   }
   .card {
-    @apply rounded-2xl bg-white border border-slate-200 shadow-sm;
+    @apply rounded-2xl bg-white border border-slate-200/80 shadow-sm;
+  }
+  .card-hover {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300;
   }
 }
 
@@ -59,7 +67,28 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in { animation: fadeIn 0.35s ease forwards; }
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* Staggered entrance for grids/cards */
+.stagger > * { opacity: 0; animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+
+/* Skeleton shimmer */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton { position: relative; overflow: hidden; background: #e8eaf1; border-radius: 0.75rem; }
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: shimmer 1.5s infinite;
+}

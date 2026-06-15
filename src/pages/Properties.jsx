@@ -3,6 +3,7 @@ import { Building2, Plus, Pencil, Trash2, MapPin, Receipt } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { formatCurrency } from '../lib/format'
 import { Card, Button, EmptyState, Spinner } from '../components/ui'
+import PageHeader from '../components/PageHeader'
 import Modal from '../components/Modal'
 import PropertyForm from '../components/PropertyForm'
 
@@ -38,15 +39,15 @@ export default function Properties() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Properties</h1>
-          <p className="text-sm text-slate-500">Each expense is logged against one of these.</p>
-        </div>
-        <Button onClick={() => setModal({})}>
-          <Plus size={16} /> Add property
-        </Button>
-      </div>
+      <PageHeader
+        title="Properties"
+        subtitle="Each expense is logged against one of these."
+        actions={
+          <Button onClick={() => setModal({})}>
+            <Plus size={16} /> Add property
+          </Button>
+        }
+      />
 
       {properties.length === 0 ? (
         <EmptyState
@@ -60,9 +61,9 @@ export default function Properties() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 stagger sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((p) => (
-            <Card key={p.id} className="flex flex-col p-5">
+            <Card key={p.id} className="card-hover flex flex-col p-5">
               <div className="flex items-start justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-light text-brand">

@@ -13,6 +13,7 @@ import {
   rowToExpenseInput,
 } from '../lib/exports'
 import { Card, Button, Spinner, EmptyState, Badge } from '../components/ui'
+import PageHeader from '../components/PageHeader'
 import FilterBar from '../components/FilterBar'
 
 const PREVIEW_LIMIT = 100
@@ -91,10 +92,10 @@ export default function Reports() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Reports &amp; Export</h1>
-        <p className="text-sm text-slate-500">Filter your expenses, then export or import as Excel, CSV or PDF.</p>
-      </div>
+      <PageHeader
+        title="Reports & Export"
+        subtitle="Filter your expenses, then export or import as Excel, CSV or PDF."
+      />
 
       <FilterBar properties={properties} value={filters} onChange={setFilters} />
 

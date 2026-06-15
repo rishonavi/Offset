@@ -89,3 +89,7 @@ export function EmptyState({ icon: Icon, title, subtitle, action }) {
     </div>
   )
 }
+
+export function Skeleton({ className }) {
+  return <div className={cx('skeleton', className)} />
+}

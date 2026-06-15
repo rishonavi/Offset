@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Private expense tracker for property portfolios",
+  "description": "Offset — track income & expenses across your assets",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

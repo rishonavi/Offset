@@ -38,7 +38,7 @@ export default function Reports() {
     const rows = toExportRows(filtered, propertyNameById)
     if (kind === 'xlsx') exportExcel(rows, baseName)
     if (kind === 'csv') exportCSV(rows, baseName)
-    if (kind === 'pdf') exportPDF(rows, { title: 'Property Expense Report', subtitle })
+    if (kind === 'pdf') exportPDF(rows, { title: 'Offset — Expense Report', subtitle })
   }
 
   const handleImport = async (file) => {

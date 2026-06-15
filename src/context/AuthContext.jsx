@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
     isCloud,
     signIn: (creds) => db.signIn(creds),
     signUp: (creds) => db.signUp(creds),
+    signInWithProvider: (provider) => db.signInWithProvider(provider),
     signOut: async () => {
       await db.signOut()
       setUser(null)

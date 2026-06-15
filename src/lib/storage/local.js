@@ -34,6 +34,9 @@ export async function signIn() {
 export async function signUp() {
   return DEMO_USER
 }
+export async function signInWithProvider() {
+  throw new Error('Social sign-in needs cloud mode — add your Supabase keys.')
+}
 export async function signOut() {
   /* nothing to do in demo mode */
 }

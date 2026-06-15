@@ -71,6 +71,34 @@ A yellow "Demo mode" banner reminds you that data isn't synced.
 
 ---
 
+## Logins (Google, Apple, email) & Google Drive backup
+
+**Sign-in methods** are handled by Supabase Auth. Email + password works out of
+the box. To enable the social buttons:
+
+1. **Google** — in Google Cloud, create an *OAuth 2.0 Web client*, then in the
+   Supabase dashboard go to **Authentication → Providers → Google**, paste the
+   Client ID + secret, and enable it.
+2. **Apple** — needs a paid Apple Developer account. Create a Services ID + key,
+   then fill them into **Authentication → Providers → Apple**.
+3. In **Authentication → URL Configuration**, set your **Site URL** and add your
+   deployed URL (and `http://localhost:5173`) to **Redirect URLs**.
+
+The Google/Apple buttons appear automatically on the login screen in cloud mode.
+
+**Google Drive backup** lets each user connect their *own* Drive and store a
+private JSON backup of their data (in the hidden app-data folder), restorable on
+any device. Receipts stay in Supabase. To enable it:
+
+1. In Google Cloud, **enable the Google Drive API** and create an *OAuth 2.0 Web
+   client* (you can reuse the one above). Add your site to **Authorized
+   JavaScript origins**.
+2. Put the client ID in `.env` as `VITE_GOOGLE_CLIENT_ID`.
+3. A **"Cloud backup — Google Drive"** card appears on the **Reports** page with
+   *Back up* / *Restore* buttons.
+
+---
+
 ## Scripts
 
 | Command           | What it does                          |

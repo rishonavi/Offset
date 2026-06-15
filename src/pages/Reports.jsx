@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { FileSpreadsheet, FileText, FileType, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { FileSpreadsheet, FileText, FileType, Upload, Loader2, CheckCircle2, AlertCircle, Cloud, UploadCloud, DownloadCloud } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount } from '../lib/filters'
 import { formatCurrency, formatDate } from '../lib/format'
@@ -12,6 +12,7 @@ import {
   parseSpreadsheet,
   rowToExpenseInput,
 } from '../lib/exports'
+import { driveConfigured, backupToDrive, restoreFromDrive } from '../lib/gdrive'
 import { Card, Button, Spinner, EmptyState, Badge } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import FilterBar from '../components/FilterBar'
@@ -24,6 +25,8 @@ export default function Reports() {
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
   const fileRef = useRef(null)
+  const [driveBusy, setDriveBusy] = useState(false)
+  const [driveMsg, setDriveMsg] = useState(null)
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
@@ -83,6 +86,78 @@ export default function Reports() {
     } finally {
       setImporting(false)
       if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleBackup = async () => {
+    setDriveBusy(true)
+    setDriveMsg(null)
+    try {
+      await backupToDrive({ version: 1, exportedAt: new Date().toISOString(), properties, expenses })
+      setDriveMsg({
+        ok: true,
+        text: `Backed up ${properties.length} properties and ${expenses.length} expenses to Google Drive.`,
+      })
+    } catch (err) {
+      setDriveMsg({ ok: false, text: err?.message || String(err) })
+    } finally {
+      setDriveBusy(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    if (!window.confirm('Restore adds the records from your Google Drive backup to this account. Continue?')) return
+    setDriveBusy(true)
+    setDriveMsg(null)
+    try {
+      const data = await restoreFromDrive()
+      if (!data) {
+        setDriveMsg({ ok: false, text: 'No backup found in your Google Drive.' })
+        return
+      }
+      const oldIdToName = new Map((data.properties || []).map((p) => [p.id, p.name]))
+      const nameToId = new Map(properties.map((p) => [p.name.trim().toLowerCase(), p.id]))
+      let createdProps = 0
+      let addedExp = 0
+      for (const p of data.properties || []) {
+        const key = (p.name || '').trim().toLowerCase()
+        if (!key) continue
+        if (!nameToId.has(key)) {
+          const np = await addProperty({
+            name: p.name,
+            type: p.type || 'Other',
+            address: p.address || '',
+            notes: p.notes || '',
+            monthly_budget: p.monthly_budget ?? null,
+          })
+          nameToId.set(key, np.id)
+          createdProps += 1
+        }
+      }
+      for (const e of data.expenses || []) {
+        const nm = (oldIdToName.get(e.property_id) || '').trim().toLowerCase()
+        const pid = nameToId.get(nm)
+        if (!pid) continue
+        await addExpense({
+          property_id: pid,
+          date: e.date,
+          amount: Number(e.amount) || 0,
+          category: e.category || 'Other',
+          vendor: e.vendor || '',
+          payment_method: e.payment_method || '',
+          description: e.description || '',
+          receipt_url: null,
+        })
+        addedExp += 1
+      }
+      setDriveMsg({
+        ok: true,
+        text: `Restored ${addedExp} expenses${createdProps ? `, created ${createdProps} properties` : ''} from Drive.`,
+      })
+    } catch (err) {
+      setDriveMsg({ ok: false, text: err?.message || String(err) })
+    } finally {
+      setDriveBusy(false)
     }
   }
 
@@ -149,6 +224,46 @@ export default function Reports() {
           )}
         </Card>
       </div>
+
+      {/* Cloud backup — Google Drive */}
+      <Card className="p-5">
+        <div className="flex items-center gap-2">
+          <Cloud size={16} className="text-slate-500" />
+          <h3 className="text-sm font-semibold text-slate-700">Cloud backup — Google Drive</h3>
+        </div>
+        {driveConfigured ? (
+          <>
+            <p className="mt-1 text-xs text-slate-500">
+              Connect your own Google Drive to keep a private backup of your properties &amp; expenses,
+              and restore it on any device. (Receipts stay in Supabase.)
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={handleBackup} loading={driveBusy}>
+                {!driveBusy && <UploadCloud size={16} className="text-emerald-600" />} Back up to Drive
+              </Button>
+              <Button variant="ghost" onClick={handleRestore} loading={driveBusy}>
+                {!driveBusy && <DownloadCloud size={16} className="text-sky-600" />} Restore from Drive
+              </Button>
+            </div>
+            {driveMsg && (
+              <div
+                className={`mt-3 flex items-start gap-2 px-3 py-2 text-sm ${
+                  driveMsg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                }`}
+              >
+                {driveMsg.ok ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+                {driveMsg.text}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">
+            Add <code className="bg-slate-100 px-1">VITE_GOOGLE_CLIENT_ID</code> to your{' '}
+            <code className="bg-slate-100 px-1">.env</code> (and enable the Drive API in Google Cloud) to connect
+            your Google Drive. See the README.
+          </p>
+        )}
+      </Card>
 
       {/* Preview */}
       {filtered.length === 0 ? (

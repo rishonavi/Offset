@@ -35,6 +35,15 @@ export async function signUp({ email, password }) {
   if (error) throw error
   return data // { user, session } — session may be null if email confirmation is on
 }
+export async function signInWithProvider(provider) {
+  // provider: 'google' | 'apple'
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: window.location.origin },
+  })
+  if (error) throw error
+  return data
+}
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
   if (error) throw error

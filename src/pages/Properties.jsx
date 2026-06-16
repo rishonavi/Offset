@@ -1,19 +1,17 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Building2, Plus, Pencil, Trash2, MapPin, ArrowRight } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { formatCurrency } from '../lib/format'
 import { monthSpendByProperty } from '../lib/budget'
 import { iconForAssetType } from '../lib/assetIcon'
-import { Button, EmptyState, Spinner } from '../components/ui'
+import { EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import BudgetBar from '../components/BudgetBar'
-import Modal from '../components/Modal'
-import PropertyForm from '../components/PropertyForm'
 
 export default function Properties() {
-  const { properties, expenses, loading, addProperty, updateProperty, deleteProperty } = useData()
-  const [modal, setModal] = useState(null) // null | { editing }
+  const { properties, expenses, loading, deleteProperty } = useData()
+  const navigate = useNavigate()
 
   const totals = useMemo(() => {
     const sum = new Map()
@@ -27,16 +25,10 @@ export default function Properties() {
 
   const monthSpend = useMemo(() => monthSpendByProperty(expenses), [expenses])
 
-  const onSubmit = async (data) => {
-    if (modal?.editing) await updateProperty(modal.editing.id, data)
-    else await addProperty(data)
-    setModal(null)
-  }
-
   const onEdit = (e, p) => {
     e.preventDefault()
     e.stopPropagation()
-    setModal({ editing: p })
+    navigate(`/properties/${p.id}/edit`)
   }
 
   const onDelete = (e, p) => {
@@ -57,9 +49,9 @@ export default function Properties() {
         title="Assets"
         subtitle="Properties, vehicles, yachts, aircraft, machinery — anything with income or running costs."
         actions={
-          <Button onClick={() => setModal({})}>
+          <Link to="/properties/new" className="btn-primary">
             <Plus size={16} /> Add asset
-          </Button>
+          </Link>
         }
       />
 
@@ -69,9 +61,9 @@ export default function Properties() {
           title="No assets yet"
           subtitle="Add your first asset — a property, car, yacht, aircraft or machine — to start tracking it."
           action={
-            <Button onClick={() => setModal({})}>
+            <Link to="/properties/new" className="btn-primary">
               <Plus size={16} /> Add asset
-            </Button>
+            </Link>
           }
         />
       ) : (
@@ -138,10 +130,6 @@ export default function Properties() {
           })}
         </div>
       )}
-
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.editing ? 'Edit asset' : 'Add asset'} maxWidth="max-w-lg">
-        {modal && <PropertyForm initial={modal.editing} onSubmit={onSubmit} onCancel={() => setModal(null)} />}
-      </Modal>
     </div>
   )
 }

@@ -1,38 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Receipt, Building2 } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount, hasActiveFilters } from '../lib/filters'
 import { formatCurrency } from '../lib/format'
-import { Button, Card, EmptyState, Spinner } from '../components/ui'
+import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import FilterBar from '../components/FilterBar'
 import ExpenseTable from '../components/ExpenseTable'
-import Modal from '../components/Modal'
-import ExpenseForm from '../components/ExpenseForm'
 
 export default function Expenses() {
-  const { expenses, properties, loading, addExpense, updateExpense, deleteExpense, propertyNameById } = useData()
+  const { expenses, properties, loading, deleteExpense, propertyNameById } = useData()
   const [filters, setFilters] = useState(emptyFilters)
-  const [modal, setModal] = useState(null) // null | { editing }
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // Open the add form when arriving via the sidebar/FAB quick-add (?new=1).
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      if (properties.length > 0) setModal({})
-      setSearchParams({}, { replace: true })
-    }
-  }, [searchParams, properties.length, setSearchParams])
+  const navigate = useNavigate()
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
-
-  const onSubmit = async (data) => {
-    if (modal?.editing) await updateExpense(modal.editing.id, data)
-    else await addExpense(data)
-    setModal(null)
-  }
 
   if (loading) return <Spinner />
 
@@ -46,9 +29,9 @@ export default function Expenses() {
           hasActiveFilters(filters) ? ' (filtered)' : ''
         } · ${formatCurrency(total)}`}
         actions={
-          <Button onClick={() => setModal({})} disabled={noProperties}>
+          <Link to="/expenses/new" className="btn-primary">
             <Plus size={16} /> Add expense
-          </Button>
+          </Link>
         }
       />
 
@@ -58,7 +41,7 @@ export default function Expenses() {
           title="Add an asset first"
           subtitle="Expenses are tracked per asset, so create one before logging expenses."
           action={
-            <Link to="/properties" className="btn-primary">
+            <Link to="/properties/new" className="btn-primary">
               <Plus size={16} /> Add asset
             </Link>
           }
@@ -73,9 +56,9 @@ export default function Expenses() {
               title="No expenses yet"
               subtitle="Log your first expense to see it here."
               action={
-                <Button onClick={() => setModal({})}>
+                <Link to="/expenses/new" className="btn-primary">
                   <Plus size={16} /> Add expense
-                </Button>
+                </Link>
               }
             />
           ) : filtered.length === 0 ? (
@@ -84,29 +67,12 @@ export default function Expenses() {
             <ExpenseTable
               expenses={filtered}
               propertyNameById={propertyNameById}
-              onEdit={(e) => setModal({ editing: e })}
+              onEdit={(e) => navigate(`/expenses/${e.id}/edit`)}
               onDelete={deleteExpense}
             />
           )}
         </>
       )}
-
-      <Modal
-        open={!!modal}
-        onClose={() => setModal(null)}
-        title={modal?.editing ? 'Edit expense' : 'Add expense'}
-        maxWidth="max-w-lg"
-      >
-        {modal && (
-          <ExpenseForm
-            initial={modal.editing}
-            properties={properties}
-            defaultPropertyId={filters.propertyId}
-            onSubmit={onSubmit}
-            onCancel={() => setModal(null)}
-          />
-        )}
-      </Modal>
     </div>
   )
 }

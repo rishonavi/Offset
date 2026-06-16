@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ResponsiveContainer,
@@ -23,11 +23,7 @@ import { iconForAssetType } from '../lib/assetIcon'
 import { Card, Button, EmptyState, Spinner } from '../components/ui'
 import BudgetBar from '../components/BudgetBar'
 import ExpenseTable from '../components/ExpenseTable'
-import Modal from '../components/Modal'
-import ExpenseForm from '../components/ExpenseForm'
-import PropertyForm from '../components/PropertyForm'
 import IncomeTable from '../components/IncomeTable'
-import IncomeForm from '../components/IncomeForm'
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -55,38 +51,21 @@ function StatCard({ icon: Icon, label, value, accent = '#C5A059' }) {
 export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const {
-    properties,
-    expenses,
-    income,
-    loading,
-    propertyNameById,
-    updateProperty,
-    deleteProperty,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addIncome,
-    updateIncome,
-    deleteIncome,
-  } = useData()
-  const [expenseModal, setExpenseModal] = useState(null) // null | { editing }
-  const [incomeModal, setIncomeModal] = useState(null)
-  const [editProperty, setEditProperty] = useState(false)
+  const { properties, expenses, income, loading, propertyNameById, deleteProperty, deleteExpense, deleteIncome } = useData()
 
   const property = useMemo(() => properties.find((p) => p.id === id), [properties, id])
   const items = useMemo(() => expenses.filter((e) => e.property_id === id), [expenses, id])
+  const incomeItems = useMemo(() => income.filter((e) => e.property_id === id), [income, id])
 
   const total = useMemo(() => sumAmount(items), [items])
   const thisMonth = useMemo(() => {
     const s = format(startOfMonth(new Date()), 'yyyy-MM-dd')
     return sumAmount(items.filter((e) => (e.date || '') >= s))
   }, [items])
-  const byCategory = useMemo(() => totalsByCategory(items), [items])
-  const monthly = useMemo(() => monthlySeries(items, 12), [items])
-  const incomeItems = useMemo(() => income.filter((e) => e.property_id === id), [income, id])
   const incomeTotal = useMemo(() => sumAmount(incomeItems), [incomeItems])
   const net = incomeTotal - total
+  const byCategory = useMemo(() => totalsByCategory(items), [items])
+  const monthly = useMemo(() => monthlySeries(items, 12), [items])
 
   if (loading) return <Spinner />
 
@@ -108,23 +87,6 @@ export default function PropertyDetail() {
   }
 
   const AssetIcon = iconForAssetType(property.type)
-
-  const onExpenseSubmit = async (data) => {
-    if (expenseModal?.editing) await updateExpense(expenseModal.editing.id, data)
-    else await addExpense(data)
-    setExpenseModal(null)
-  }
-
-  const onIncomeSubmit = async (data) => {
-    if (incomeModal?.editing) await updateIncome(incomeModal.editing.id, data)
-    else await addIncome(data)
-    setIncomeModal(null)
-  }
-
-  const onPropertySubmit = async (data) => {
-    await updateProperty(property.id, data)
-    setEditProperty(false)
-  }
 
   const onDeleteProperty = () => {
     const msg = items.length
@@ -161,15 +123,15 @@ export default function PropertyDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" onClick={() => setEditProperty(true)}>
+          <Link to={`/properties/${property.id}/edit`} className="btn-ghost">
             <Pencil size={15} /> Edit
-          </Button>
+          </Link>
           <Button variant="ghost" onClick={onDeleteProperty} className="text-red-600 hover:bg-red-50">
             <Trash2 size={15} /> Delete
           </Button>
-          <Button onClick={() => setExpenseModal({})}>
+          <Link to={`/expenses/new?asset=${property.id}`} className="btn-primary">
             <Plus size={16} /> Add expense
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -181,9 +143,9 @@ export default function PropertyDetail() {
       ) : (
         <Card className="flex items-center justify-between p-4 text-sm">
           <span className="text-slate-500">No monthly budget set for this asset.</span>
-          <button onClick={() => setEditProperty(true)} className="font-medium text-brand hover:underline">
+          <Link to={`/properties/${property.id}/edit`} className="font-medium text-brand hover:underline">
             Set a budget
-          </button>
+          </Link>
         </Card>
       )}
 
@@ -249,19 +211,19 @@ export default function PropertyDetail() {
         {items.length === 0 ? (
           <EmptyState
             icon={Receipt}
-            title="No expenses for this property"
+            title="No expenses for this asset"
             subtitle="Log the first one to start tracking."
             action={
-              <Button onClick={() => setExpenseModal({})}>
+              <Link to={`/expenses/new?asset=${property.id}`} className="btn-primary">
                 <Plus size={16} /> Add expense
-              </Button>
+              </Link>
             }
           />
         ) : (
           <ExpenseTable
             expenses={items}
             propertyNameById={propertyNameById}
-            onEdit={(e) => setExpenseModal({ editing: e })}
+            onEdit={(e) => navigate(`/expenses/${e.id}/edit`)}
             onDelete={deleteExpense}
           />
         )}
@@ -271,9 +233,9 @@ export default function PropertyDetail() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700">Income ({incomeItems.length})</h3>
-          <Button variant="ghost" onClick={() => setIncomeModal({})}>
+          <Link to={`/income/new?asset=${property.id}`} className="btn-ghost">
             <Plus size={15} /> Add income
-          </Button>
+          </Link>
         </div>
         {incomeItems.length === 0 ? (
           <EmptyState
@@ -281,58 +243,20 @@ export default function PropertyDetail() {
             title="No income for this asset"
             subtitle="Log rent or other income to track net profit."
             action={
-              <Button onClick={() => setIncomeModal({})}>
+              <Link to={`/income/new?asset=${property.id}`} className="btn-primary">
                 <Plus size={16} /> Add income
-              </Button>
+              </Link>
             }
           />
         ) : (
           <IncomeTable
             income={incomeItems}
             propertyNameById={propertyNameById}
-            onEdit={(e) => setIncomeModal({ editing: e })}
+            onEdit={(e) => navigate(`/income/${e.id}/edit`)}
             onDelete={deleteIncome}
           />
         )}
       </div>
-
-      <Modal
-        open={!!expenseModal}
-        onClose={() => setExpenseModal(null)}
-        title={expenseModal?.editing ? 'Edit expense' : 'Add expense'}
-        maxWidth="max-w-lg"
-      >
-        {expenseModal && (
-          <ExpenseForm
-            initial={expenseModal.editing}
-            properties={properties}
-            defaultPropertyId={property.id}
-            onSubmit={onExpenseSubmit}
-            onCancel={() => setExpenseModal(null)}
-          />
-        )}
-      </Modal>
-
-      <Modal open={editProperty} onClose={() => setEditProperty(false)} title="Edit asset" maxWidth="max-w-lg">
-        {editProperty && <PropertyForm initial={property} onSubmit={onPropertySubmit} onCancel={() => setEditProperty(false)} />}
-      </Modal>
-
-      <Modal
-        open={!!incomeModal}
-        onClose={() => setIncomeModal(null)}
-        title={incomeModal?.editing ? 'Edit income' : 'Add income'}
-        maxWidth="max-w-lg"
-      >
-        {incomeModal && (
-          <IncomeForm
-            initial={incomeModal.editing}
-            properties={properties}
-            defaultPropertyId={property.id}
-            onSubmit={onIncomeSubmit}
-            onCancel={() => setIncomeModal(null)}
-          />
-        )}
-      </Modal>
     </div>
   )
 }

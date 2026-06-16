@@ -1,29 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Banknote, Building2, Search, X } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { sumAmount } from '../lib/filters'
 import { formatCurrency } from '../lib/format'
-import { Button, Card, EmptyState, Spinner } from '../components/ui'
+import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import IncomeTable from '../components/IncomeTable'
-import Modal from '../components/Modal'
-import IncomeForm from '../components/IncomeForm'
 
 const EMPTY = { propertyId: '', from: '', to: '', q: '' }
 
 export default function Income() {
-  const { income, properties, loading, addIncome, updateIncome, deleteIncome, propertyNameById } = useData()
+  const { income, properties, loading, deleteIncome, propertyNameById } = useData()
   const [filters, setFilters] = useState(EMPTY)
-  const [modal, setModal] = useState(null)
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      if (properties.length > 0) setModal({})
-      setSearchParams({}, { replace: true })
-    }
-  }, [searchParams, properties.length, setSearchParams])
+  const navigate = useNavigate()
 
   const filtered = useMemo(
     () =>
@@ -43,12 +33,6 @@ export default function Income() {
   const active = filters.propertyId || filters.from || filters.to || filters.q
   const set = (k) => (e) => setFilters((f) => ({ ...f, [k]: e.target.value }))
 
-  const onSubmit = async (data) => {
-    if (modal?.editing) await updateIncome(modal.editing.id, data)
-    else await addIncome(data)
-    setModal(null)
-  }
-
   if (loading) return <Spinner />
   const noProperties = properties.length === 0
 
@@ -58,9 +42,9 @@ export default function Income() {
         title="Income"
         subtitle={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}${active ? ' (filtered)' : ''} · ${formatCurrency(total)} received`}
         actions={
-          <Button onClick={() => setModal({})} disabled={noProperties}>
+          <Link to="/income/new" className="btn-primary">
             <Plus size={16} /> Add income
-          </Button>
+          </Link>
         }
       />
 
@@ -70,7 +54,7 @@ export default function Income() {
           title="Add an asset first"
           subtitle="Income is tracked per asset, so create one before logging rent."
           action={
-            <Link to="/properties" className="btn-primary">
+            <Link to="/properties/new" className="btn-primary">
               <Plus size={16} /> Add asset
             </Link>
           }
@@ -84,7 +68,7 @@ export default function Income() {
                 <input className="field-input pl-9" placeholder="Search source, payer, note…" value={filters.q} onChange={set('q')} />
               </div>
               <select className="field-input lg:col-span-4" value={filters.propertyId} onChange={set('propertyId')}>
-                <option value="">All properties</option>
+                <option value="">All assets</option>
                 {properties.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -107,30 +91,18 @@ export default function Income() {
               title="No income yet"
               subtitle="Log rent or other income to see it here."
               action={
-                <Button onClick={() => setModal({})}>
+                <Link to="/income/new" className="btn-primary">
                   <Plus size={16} /> Add income
-                </Button>
+                </Link>
               }
             />
           ) : filtered.length === 0 ? (
             <Card className="p-10 text-center text-sm text-slate-500">No income matches these filters.</Card>
           ) : (
-            <IncomeTable income={filtered} propertyNameById={propertyNameById} onEdit={(e) => setModal({ editing: e })} onDelete={deleteIncome} />
+            <IncomeTable income={filtered} propertyNameById={propertyNameById} onEdit={(e) => navigate(`/income/${e.id}/edit`)} onDelete={deleteIncome} />
           )}
         </>
       )}
-
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.editing ? 'Edit income' : 'Add income'} maxWidth="max-w-lg">
-        {modal && (
-          <IncomeForm
-            initial={modal.editing}
-            properties={properties}
-            defaultPropertyId={filters.propertyId}
-            onSubmit={onSubmit}
-            onCancel={() => setModal(null)}
-          />
-        )}
-      </Modal>
     </div>
   )
 }

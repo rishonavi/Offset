@@ -82,7 +82,7 @@ function ThemeToggle({ className = '' }) {
 
 function QuickAdd({ onNavigate }) {
   return (
-    <Link to="/expenses?new=1" onClick={onNavigate} className="btn-primary mt-6 w-full">
+    <Link to="/expenses/new" onClick={onNavigate} className="btn-primary mt-6 w-full">
       <Plus size={15} /> Add expense
     </Link>
   )
@@ -165,7 +165,7 @@ export default function Layout() {
 
       {/* Mobile floating quick-add */}
       <Link
-        to="/expenses?new=1"
+        to="/expenses/new"
         className="fixed bottom-5 right-5 z-30 grid h-14 w-14 place-items-center bg-gold text-navy shadow-lg shadow-navy/40 transition active:scale-95 lg:hidden"
         aria-label="Add expense"
       >

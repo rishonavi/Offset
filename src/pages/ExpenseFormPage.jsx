@@ -1,0 +1,76 @@
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Plus, Receipt, Building2 } from 'lucide-react'
+import { useData } from '../context/DataContext'
+import { Card, EmptyState, Spinner } from '../components/ui'
+import PageHeader from '../components/PageHeader'
+import ExpenseForm from '../components/ExpenseForm'
+
+export default function ExpenseFormPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const { expenses, properties, loading, addExpense, updateExpense } = useData()
+
+  if (loading) return <Spinner />
+
+  const editing = id ? expenses.find((e) => e.id === id) : null
+  const goBack = () => navigate(-1)
+
+  if (id && !editing) {
+    return (
+      <div className="animate-fade-in">
+        <EmptyState
+          icon={Receipt}
+          title="Expense not found"
+          subtitle="It may have been deleted."
+          action={
+            <Link to="/expenses" className="btn-primary">
+              Back to expenses
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
+
+  if (properties.length === 0) {
+    return (
+      <div className="animate-fade-in">
+        <EmptyState
+          icon={Building2}
+          title="Add an asset first"
+          subtitle="Expenses are tracked per asset, so create one before logging expenses."
+          action={
+            <Link to="/properties/new" className="btn-primary">
+              <Plus size={16} /> Add asset
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
+
+  const onSubmit = async (data) => {
+    if (editing) await updateExpense(editing.id, data)
+    else await addExpense(data)
+    goBack()
+  }
+
+  return (
+    <div className="animate-fade-in space-y-6">
+      <Link to="/expenses" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800">
+        <ArrowLeft size={15} /> Back to expenses
+      </Link>
+      <PageHeader title={editing ? 'Edit expense' : 'Add expense'} />
+      <Card className="max-w-2xl p-5 sm:p-7">
+        <ExpenseForm
+          initial={editing}
+          properties={properties}
+          defaultPropertyId={params.get('asset') || ''}
+          onSubmit={onSubmit}
+          onCancel={goBack}
+        />
+      </Card>
+    </div>
+  )
+}

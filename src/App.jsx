@@ -10,8 +10,11 @@ const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Properties = lazy(() => import('./pages/Properties'))
 const PropertyDetail = lazy(() => import('./pages/PropertyDetail'))
+const AssetFormPage = lazy(() => import('./pages/AssetFormPage'))
 const Expenses = lazy(() => import('./pages/Expenses'))
+const ExpenseFormPage = lazy(() => import('./pages/ExpenseFormPage'))
 const Income = lazy(() => import('./pages/Income'))
+const IncomeFormPage = lazy(() => import('./pages/IncomeFormPage'))
 const Reports = lazy(() => import('./pages/Reports'))
 
 export default function App() {
@@ -44,9 +47,15 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="properties" element={<Properties />} />
+        <Route path="properties/new" element={<AssetFormPage />} />
         <Route path="properties/:id" element={<PropertyDetail />} />
+        <Route path="properties/:id/edit" element={<AssetFormPage />} />
         <Route path="expenses" element={<Expenses />} />
+        <Route path="expenses/new" element={<ExpenseFormPage />} />
+        <Route path="expenses/:id/edit" element={<ExpenseFormPage />} />
         <Route path="income" element={<Income />} />
+        <Route path="income/new" element={<IncomeFormPage />} />
+        <Route path="income/:id/edit" element={<IncomeFormPage />} />
         <Route path="reports" element={<Reports />} />
       </Route>
 

@@ -124,7 +124,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <Field label="Property" required>
           <Select value={form.property_id} onChange={set('property_id')}>
             {properties.map((p) => (

@@ -5,6 +5,7 @@ import {
   Boxes,
   Receipt,
   Banknote,
+  FileText,
   PieChart,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ const NAV = [
   { to: '/properties', label: 'Assets', icon: Boxes },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
   { to: '/income', label: 'Income', icon: Banknote },
+  { to: '/bills', label: 'Bills', icon: FileText },
   { to: '/reports', label: 'Reports & Export', icon: PieChart },
 ]
 

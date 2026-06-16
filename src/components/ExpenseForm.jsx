@@ -176,16 +176,17 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
         </Field>
 
         <Field label="Category" required>
-          <Select value={form.category} onChange={set('category')}>
-            <option value="" disabled>
-              Select category…
-            </option>
+          <Input
+            list="expense-categories"
+            value={form.category}
+            onChange={set('category')}
+            placeholder="Select or type a category"
+          />
+          <datalist id="expense-categories">
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
+              <option key={c} value={c} />
             ))}
-          </Select>
+          </datalist>
         </Field>
 
         <Field label="Vendor / Payee">

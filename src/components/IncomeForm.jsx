@@ -174,13 +174,17 @@ export default function IncomeForm({ initial, properties, defaultPropertyId, onS
         </Field>
 
         <Field label="Source" required>
-          <Select value={form.source} onChange={set('source')}>
+          <Input
+            list="income-sources"
+            value={form.source}
+            onChange={set('source')}
+            placeholder="Select or type a source"
+          />
+          <datalist id="income-sources">
             {INCOME_SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s} />
             ))}
-          </Select>
+          </datalist>
         </Field>
 
         <Field label="Received from (tenant / payer)">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Receipt, Building2 } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount, hasActiveFilters } from '../lib/filters'
+import { CATEGORIES } from '../lib/constants'
 import { formatCurrency } from '../lib/format'
 import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
@@ -16,6 +17,10 @@ export default function Expenses() {
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
+  const categoryOptions = useMemo(
+    () => [...new Set([...CATEGORIES, ...expenses.map((e) => e.category).filter(Boolean)])],
+    [expenses],
+  )
 
   if (loading) return <Spinner />
 
@@ -48,7 +53,7 @@ export default function Expenses() {
         />
       ) : (
         <>
-          <FilterBar properties={properties} value={filters} onChange={setFilters} />
+          <FilterBar properties={properties} value={filters} onChange={setFilters} categories={categoryOptions} />
 
           {expenses.length === 0 ? (
             <EmptyState

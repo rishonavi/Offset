@@ -3,7 +3,7 @@ import { CATEGORIES } from '../lib/constants'
 import { emptyFilters, hasActiveFilters } from '../lib/filters'
 import { Card } from './ui'
 
-export default function FilterBar({ properties, value, onChange }) {
+export default function FilterBar({ properties, value, onChange, categories = CATEGORIES }) {
   const set = (key) => (e) => onChange({ ...value, [key]: e.target.value })
 
   return (
@@ -30,7 +30,7 @@ export default function FilterBar({ properties, value, onChange }) {
 
         <select className="field-input lg:col-span-2" value={value.category} onChange={set('category')}>
           <option value="">All categories</option>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>

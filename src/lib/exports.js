@@ -15,6 +15,7 @@ export function toExportRows(expenses, propertyNameById) {
     'Payment Method': e.payment_method || '',
     Description: e.description || '',
     Amount: Number(e.amount) || 0,
+    'Tax / GST': Number(e.tax) || 0,
   }))
 }
 

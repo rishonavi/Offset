@@ -124,13 +124,41 @@ function guessVendor(lines) {
   return v ? v.replace(/\s+/g, ' ').trim().slice(0, 60) : null
 }
 
+// Last money-looking number on a line, ignoring percentages (e.g. "18%").
+function amountOnLine(line) {
+  const cleaned = line.replace(/\d+(?:\.\d+)?\s*%/g, ' ')
+  const nums = [...cleaned.matchAll(/([0-9][0-9,]*\.[0-9]{2}|[0-9][0-9,]{1,})/g)]
+    .map((m) => parseFloat(m[1].replace(/,/g, '')))
+    .filter((n) => !isNaN(n) && n > 0)
+  return nums.length ? nums[nums.length - 1] : null
+}
+
+// Pull out the tax/GST amount. Sums CGST+SGST when itemised; else IGST/GST/VAT/Tax.
+function guessTax(lines) {
+  let cgst = null
+  let sgst = null
+  let igst = null
+  let generic = null
+  for (const line of lines) {
+    const l = line.toLowerCase()
+    if (/cgst/.test(l)) cgst = amountOnLine(line) ?? cgst
+    else if (/sgst|utgst/.test(l)) sgst = amountOnLine(line) ?? sgst
+    else if (/igst/.test(l)) igst = amountOnLine(line) ?? igst
+    else if (/\b(gst|vat|tax)\b/.test(l) && !/total|without|excl/.test(l)) generic = amountOnLine(line) ?? generic
+  }
+  if (igst) return igst
+  if (cgst || sgst) return (cgst || 0) + (sgst || 0)
+  return generic
+}
+
 // Best-effort structured fields from receipt text. The user verifies/edits.
 export function parseReceipt(text) {
-  const out = { amount: null, date: null, vendor: null }
+  const out = { amount: null, date: null, vendor: null, tax: null }
   if (!text) return out
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   out.amount = guessAmount(lines)
   out.date = guessDate(text)
   out.vendor = guessVendor(lines)
+  out.tax = guessTax(lines)
   return out
 }

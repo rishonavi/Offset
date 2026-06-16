@@ -79,6 +79,10 @@ alter table public.expenses add column if not exists due_date date;
 alter table public.income   add column if not exists status   text default 'received';
 alter table public.income   add column if not exists due_date date;
 
+-- ── Tax / GST amount (safe to re-run) ────────────────────────────
+alter table public.expenses add column if not exists tax numeric(14,2);
+alter table public.income   add column if not exists tax numeric(14,2);
+
 -- ── Receipt storage (private bucket) ─────────────────────────────
 insert into storage.buckets (id, name, public)
 values ('receipts', 'receipts', false)

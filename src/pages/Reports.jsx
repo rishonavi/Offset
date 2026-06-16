@@ -148,6 +148,7 @@ export default function Reports() {
           payment_method: e.payment_method || '',
           status: e.status || 'paid',
           due_date: e.due_date || null,
+          tax: e.tax ?? null,
           description: e.description || '',
           receipt_url: null,
         })
@@ -166,6 +167,7 @@ export default function Reports() {
           payment_method: e.payment_method || '',
           status: e.status || 'received',
           due_date: e.due_date || null,
+          tax: e.tax ?? null,
           description: e.description || '',
           receipt_url: null,
         })

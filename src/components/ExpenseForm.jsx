@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Paperclip, X, Loader2, Sparkles } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Paperclip, X, Loader2, Sparkles, Camera, Upload } from 'lucide-react'
 import { CATEGORIES, PAYMENT_METHODS } from '../lib/constants'
 import { currencySymbol, todayISO } from '../lib/format'
 import { db } from '../lib/storage'
@@ -10,6 +10,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
     property_id: initial?.property_id || defaultPropertyId || (properties[0]?.id ?? ''),
     date: initial?.date || todayISO(),
     amount: initial?.amount ?? '',
+    tax: initial?.tax ?? '',
     category: initial?.category || '',
     vendor: initial?.vendor || '',
     payment_method: initial?.payment_method || '',
@@ -25,6 +26,8 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
   const [scanning, setScanning] = useState(false)
   const [scanPct, setScanPct] = useState(0)
   const [scanMsg, setScanMsg] = useState(null)
+  const fileRef = useRef(null)
+  const cameraRef = useRef(null)
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -64,10 +67,16 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
       setForm((f) => ({
         ...f,
         amount: parsed.amount != null ? String(parsed.amount) : f.amount,
+        tax: parsed.tax != null ? String(parsed.tax) : f.tax,
         date: parsed.date || f.date,
         vendor: parsed.vendor || f.vendor,
       }))
-      const got = [parsed.amount != null && 'amount', parsed.date && 'date', parsed.vendor && 'vendor'].filter(Boolean)
+      const got = [
+        parsed.amount != null && 'amount',
+        parsed.tax != null && 'tax',
+        parsed.date && 'date',
+        parsed.vendor && 'vendor',
+      ].filter(Boolean)
       setScanMsg(
         got.length
           ? `Filled ${got.join(', ')} — please double-check.`
@@ -98,6 +107,7 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
         property_id: form.property_id,
         date: form.date,
         amount,
+        tax: form.tax === '' ? null : Number(form.tax),
         category: form.category,
         vendor: form.vendor.trim(),
         payment_method: form.payment_method,
@@ -142,6 +152,24 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
               className="pl-8"
               value={form.amount}
               onChange={set('amount')}
+              placeholder="0"
+            />
+          </div>
+        </Field>
+
+        <Field label="Tax / GST" hint="Optional — already part of the amount">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+              {currencySymbol}
+            </span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              className="pl-8"
+              value={form.tax}
+              onChange={set('tax')}
               placeholder="0"
             />
           </div>
@@ -248,12 +276,18 @@ export default function ExpenseForm({ initial, properties, defaultPropertyId, on
             {scanMsg && <p className="text-xs text-slate-500">{scanMsg}</p>}
           </div>
         ) : (
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            onChange={onPickFile}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-light file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand hover:file:bg-indigo-100"
-          />
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => cameraRef.current?.click()} className="btn-ghost flex-1">
+                <Camera size={15} /> Take photo
+              </button>
+              <button type="button" onClick={() => fileRef.current?.click()} className="btn-ghost flex-1">
+                <Upload size={15} /> Choose file
+              </button>
+            </div>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={onPickFile} className="hidden" />
+            <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={onPickFile} className="hidden" />
+          </div>
         )}
       </Field>
 

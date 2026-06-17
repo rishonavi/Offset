@@ -60,7 +60,7 @@ export default function IncomeForm({ initial, properties, defaultPropertyId, onS
     setScanMsg(null)
     setScanPct(0)
     try {
-      const { scanReceipt } = await import('../lib/ocr')
+      const { scanReceipt, scanSourceNote } = await import('../lib/ocr')
       const parsed = await scanReceipt(file, (p) => setScanPct(Math.round(p * 100)))
       setForm((f) => ({
         ...f,
@@ -75,11 +75,10 @@ export default function IncomeForm({ initial, properties, defaultPropertyId, onS
         parsed.date && 'date',
         parsed.vendor && 'payer',
       ].filter(Boolean)
-      setScanMsg(
-        got.length
-          ? `Filled ${got.join(', ')} — please double-check.`
-          : 'Couldn’t read the details — please enter them manually.',
-      )
+      const base = got.length
+        ? `Filled ${got.join(', ')} — please double-check.`
+        : 'Couldn’t read the details — please enter them manually.'
+      setScanMsg(`${base} ${scanSourceNote(parsed)}`)
     } catch {
       setScanMsg('Scan failed — please enter details manually.')
     } finally {

@@ -233,38 +233,64 @@ async function prepareForUpload(file) {
   return { kind: 'image', media_type: img.media_type, data: img.data }
 }
 
+// Returns { data, error }: data is the parsed fields (or null), error is a
+// short reason code when the AI reader couldn't be used (so the UI can explain
+// why it fell back to OCR).
 async function scanWithAI(file) {
   const payload = await prepareForUpload(file)
-  if (!payload) return null // too big / unreadable → fall back to OCR
+  if (!payload) return { data: null, error: 'too_big' } // file too large → OCR
   const res = await fetch(AI_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  if (!res.ok) return null // 501 not-configured, or any error → OCR fallback
+  if (res.status === 501) return { data: null, error: 'not_configured' }
+  if (!res.ok) return { data: null, error: `http_${res.status}` }
   const d = await res.json().catch(() => null)
-  if (!d) return null
+  if (!d) return { data: null, error: 'bad_response' }
   const hit = d.amount != null || d.tax != null || d.date || d.vendor || d.category
-  if (!hit) return null
+  if (!hit) return { data: null, error: 'no_fields' }
   return {
-    amount: d.amount ?? null,
-    tax: d.tax ?? null,
-    date: d.date || null,
-    vendor: d.vendor || null,
-    category: d.category || null,
+    data: {
+      amount: d.amount ?? null,
+      tax: d.tax ?? null,
+      date: d.date || null,
+      vendor: d.vendor || null,
+      category: d.category || null,
+    },
+    error: null,
   }
 }
 
 // Public entry point used by the forms. Tries the accurate AI vision reader
 // first, then falls back to on-device OCR + heuristics. Always resolves with
-// { amount, tax, date, vendor, category, source }.
+// { amount, tax, date, vendor, category, source, aiError }.
 export async function scanReceipt(file, onProgress) {
+  let aiError = null
   try {
-    const ai = await scanWithAI(file)
-    if (ai) return { ...ai, source: 'ai' }
+    const { data, error } = await scanWithAI(file)
+    if (data) return { ...data, source: 'ai', aiError: null }
+    aiError = error
   } catch {
-    /* network/parse error → fall back to OCR below */
+    aiError = 'network' // /api unreachable, blocked, or returned non-JSON
   }
   const text = await extractText(file, onProgress)
-  return { ...parseReceipt(text), source: 'ocr' }
+  return { ...parseReceipt(text), source: 'ocr', aiError }
+}
+
+// Human-readable note about which reader was used, shown under the scan button.
+export function scanSourceNote(parsed) {
+  if (parsed.source === 'ai') return 'Read with AI.'
+  switch (parsed.aiError) {
+    case 'not_configured':
+      return 'Used basic OCR — add the Gemini key in Vercel (then redeploy) for accurate AI scans.'
+    case 'too_big':
+      return 'File too large for AI — used basic OCR. Try a smaller photo.'
+    case 'network':
+      return 'AI reader unreachable — used basic OCR. Check the deployment / API route.'
+    case 'no_fields':
+      return 'AI couldn’t read this one — used basic OCR.'
+    default:
+      return 'AI reader unavailable — used basic OCR.'
+  }
 }

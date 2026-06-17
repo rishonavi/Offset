@@ -3,15 +3,21 @@
 // more accurate than the on-device OCR (Tesseract) fallback — it understands
 // layout, messy scans, handwriting and non-English receipts.
 //
-// The client (src/lib/ocr.js → scanReceipt) calls this first and falls back to
-// on-device OCR if it returns anything other than 200. If GEMINI_API_KEY is not
-// configured the function replies 501 so the app keeps working on OCR.
+// The client (src/lib/ocr.js → scanReceipt) POSTs the file here and falls back
+// to on-device OCR if it returns anything other than 200. If GEMINI_API_KEY is
+// not configured the POST replies 501 so the app keeps working on OCR.
+//
+// Open this URL in a browser (GET) for a health check: it reports whether the
+// key is set + valid and which models it can use — handy for diagnosing setup.
 //
 // Env:
 //   GEMINI_API_KEY  (required for AI scanning — free key from aistudio.google.com)
 //   SCAN_MODEL      (optional; defaults to gemini-2.0-flash)
 
+export const config = { maxDuration: 30 }
+
 const MODEL = process.env.SCAN_MODEL || 'gemini-2.0-flash'
+const API = 'https://generativelanguage.googleapis.com/v1beta'
 
 // Categories the app already uses — nudges the model to map onto an existing
 // one so the result drops straight into the category picker.
@@ -96,21 +102,30 @@ function toStr(v) {
   return s.slice(0, 80)
 }
 
+// Read + JSON-parse the request body, falling back to the raw stream if the
+// runtime didn't pre-parse req.body.
+async function readBody(req) {
+  if (req.body != null && req.body !== '') {
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+  }
+  const chunks = []
+  for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c)
+  if (!chunks.length) return {}
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}
+
 async function callGemini(apiKey, parts, useSchema) {
   const generationConfig = { temperature: 0, responseMimeType: 'application/json' }
   if (useSchema) generationConfig.responseSchema = RESPONSE_SCHEMA
-  const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ role: 'user', parts }],
-        generationConfig,
-      }),
-    },
-  )
+  const r = await fetch(`${API}/models/${MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM }] },
+      contents: [{ role: 'user', parts }],
+      generationConfig,
+    }),
+  })
   if (!r.ok) {
     const detail = await r.text().catch(() => '')
     const err = new Error(`gemini_${r.status}`)
@@ -125,27 +140,80 @@ async function callGemini(apiKey, parts, useSchema) {
     .join('\n')
 }
 
+// GET = health check: is the key set + valid, and can it use the chosen model?
+async function health(res, apiKey) {
+  if (!apiKey) {
+    res.status(200).json({
+      ok: true,
+      configured: false,
+      model: MODEL,
+      hint: 'Set GEMINI_API_KEY in your host env vars (no VITE_ prefix), then redeploy.',
+    })
+    return
+  }
+  try {
+    const r = await fetch(`${API}/models`, { headers: { 'x-goog-api-key': apiKey } })
+    const body = await r.json().catch(() => null)
+    if (!r.ok) {
+      res.status(200).json({
+        ok: true,
+        configured: true,
+        model: MODEL,
+        keyValid: false,
+        status: r.status,
+        detail: (body?.error?.message || '').slice(0, 200),
+      })
+      return
+    }
+    const models = (body?.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m) => (m.name || '').replace('models/', ''))
+      .filter(Boolean)
+    res.status(200).json({
+      ok: true,
+      configured: true,
+      model: MODEL,
+      keyValid: true,
+      modelAvailable: models.includes(MODEL),
+      models,
+    })
+  } catch (e) {
+    res.status(200).json({ ok: true, configured: true, model: MODEL, keyValid: false, error: e?.message })
+  }
+}
+
 export default async function handler(req, res) {
+  const apiKey = process.env.GEMINI_API_KEY
+
+  if (req.method === 'GET') {
+    await health(res, apiKey)
+    return
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method_not_allowed' })
     return
   }
-
-  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     // Not configured — tell the client to use on-device OCR instead.
     res.status(501).json({ error: 'ai_not_configured' })
     return
   }
 
+  let body
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {}
-    const { media_type, data } = body
-    if (!data || !media_type) {
-      res.status(400).json({ error: 'missing_image' })
-      return
-    }
+    body = await readBody(req)
+  } catch {
+    res.status(400).json({ error: 'bad_json' })
+    return
+  }
 
+  const { media_type, data } = body || {}
+  if (!data || !media_type) {
+    res.status(400).json({ error: 'missing_image' })
+    return
+  }
+
+  try {
     // Gemini handles both images and PDFs through inlineData.
     const parts = [
       { inlineData: { mimeType: media_type, data } },
@@ -170,6 +238,8 @@ export default async function handler(req, res) {
       category: toStr(parsed.category),
     })
   } catch (err) {
-    res.status(502).json({ error: err?.message || 'scan_failed', detail: (err?.detail || '').slice(0, 300) })
+    res
+      .status(502)
+      .json({ error: err?.message || 'scan_failed', detail: (err?.detail || '').slice(0, 300) })
   }
 }

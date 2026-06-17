@@ -164,7 +164,7 @@ export function parseReceipt(text) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// AI-assisted scanning — sends the receipt to a Claude vision model server-side
+// AI-assisted scanning — sends the receipt to a Gemini vision model server-side
 // (api/scan-receipt) for far more accurate reading, with on-device OCR as a
 // graceful fallback when the API isn't configured / reachable / the file is too
 // large.

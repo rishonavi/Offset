@@ -113,13 +113,15 @@ off the receipt for you to confirm.
 
 There are two readers, and the app picks the best one available automatically:
 
-1. **AI vision (accurate, recommended).** Set an `ANTHROPIC_API_KEY` environment
-   variable on your host and the app reads receipts with Claude's vision model —
-   it copes with angled photos, faint thermal prints, handwriting and non-English
-   bills, and maps the spend onto one of your categories. The key is used only by
-   the serverless function in [`api/`](./api/scan-receipt.js); it is **never**
-   shipped to the browser (note there is no `VITE_` prefix). Optionally set
-   `SCAN_MODEL` to choose a cheaper/faster model.
+1. **AI vision (accurate, recommended — and free).** Create a free
+   [Google AI Studio](https://aistudio.google.com) API key (just a Google
+   account, no credit card) and set it as `GEMINI_API_KEY` on your host. The app
+   then reads receipts with Gemini's vision model — it copes with angled photos,
+   faint thermal prints, handwriting and non-English bills, and maps the spend
+   onto one of your categories. The key is used only by the serverless function
+   in [`api/`](./api/scan-receipt.js); it is **never** shipped to the browser
+   (note there is no `VITE_` prefix). Optionally set `SCAN_MODEL` (defaults to
+   `gemini-2.0-flash`).
 2. **On-device OCR (free, zero setup).** With no API key, scanning falls back to
    in-browser OCR (Tesseract) plus heuristics — handy but less accurate.
 
@@ -176,7 +178,7 @@ src/
   components/       Layout, forms, table, charts UI, primitives
   pages/            Dashboard, Properties, Expenses, Reports, Login
 api/
-  scan-receipt.js   serverless function: reads receipts with Claude vision
+  scan-receipt.js   serverless function: reads receipts with Gemini vision
 supabase/
   schema.sql        run this in Supabase to set up the database
 ```

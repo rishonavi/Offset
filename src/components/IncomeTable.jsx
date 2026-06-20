@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Paperclip, Pencil, Trash2 } from 'lucide-react'
+import { Paperclip, Pencil, Trash2, Copy, CheckCircle2 } from 'lucide-react'
 import { colorForSource } from '../lib/constants'
 import { formatCurrency, formatDate } from '../lib/format'
+import { isSettled } from '../lib/payments'
 import { Badge } from './ui'
 import PaymentChip from './PaymentChip'
 import ReceiptViewer from './ReceiptViewer'
 
-export default function IncomeTable({ income, propertyNameById, onEdit, onDelete }) {
+export default function IncomeTable({ income, propertyNameById, onEdit, onDelete, onMarkSettled, onDuplicate }) {
   const [viewing, setViewing] = useState(null)
   const confirmDelete = (e) => {
     if (window.confirm(`Delete this ${formatCurrency(e.amount)} income entry? This cannot be undone.`)) {
@@ -55,6 +56,24 @@ export default function IncomeTable({ income, propertyNameById, onEdit, onDelete
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    {onMarkSettled && !isSettled(e, 'income') && (
+                      <button
+                        onClick={() => onMarkSettled(e)}
+                        className="grid h-8 w-8 place-items-center text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600"
+                        title="Mark as received"
+                      >
+                        <CheckCircle2 size={15} />
+                      </button>
+                    )}
+                    {onDuplicate && (
+                      <button
+                        onClick={() => onDuplicate(e)}
+                        className="grid h-8 w-8 place-items-center text-slate-400 transition hover:bg-slate-100 hover:text-gold"
+                        title="Duplicate"
+                      >
+                        <Copy size={15} />
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(e)}
                       className="grid h-8 w-8 place-items-center text-slate-400 transition hover:bg-slate-100 hover:text-gold"
@@ -99,7 +118,17 @@ export default function IncomeTable({ income, propertyNameById, onEdit, onDelete
               )}
             </div>
             {e.description && <p className="mt-2 text-sm text-slate-500">{e.description}</p>}
-            <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
+            <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-3">
+              {onMarkSettled && !isSettled(e, 'income') && (
+                <button onClick={() => onMarkSettled(e)} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                  <CheckCircle2 size={13} /> Mark received
+                </button>
+              )}
+              {onDuplicate && (
+                <button onClick={() => onDuplicate(e)} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
+                  <Copy size={13} /> Duplicate
+                </button>
+              )}
               <button onClick={() => onEdit(e)} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
                 <Pencil size={13} /> Edit
               </button>

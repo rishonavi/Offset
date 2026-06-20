@@ -15,6 +15,12 @@ Storage) as the cloud backend.
 - **Expenses** — date, amount, category, vendor, payment method, notes.
 - **Receipts** — attach a photo/PDF of the bill to any expense.
 - **Scan to auto-fill** — read a receipt's amount, tax, date, vendor and category automatically (AI vision when configured, on-device OCR otherwise).
+- **Vendor/payer autocomplete** — fields suggest names you've already used.
+- **Quick actions** — one-tap *mark paid/received* and *duplicate* on any entry (a fast way to re-log recurring rent/EMI/utilities).
+- **ROI & yield** — add an asset value to see gross/net rental yield and total ROI per asset.
+- **Tax & year-end summary** — GST/tax paid vs collected and a per-year statement, with a year-end PDF.
+- **Installable app (PWA)** — add Offset to your home screen; runs full-screen and works offline.
+- **Payment reminders** *(optional)* — daily email digest of overdue/upcoming payments (see [`supabase/functions/payment-reminders`](./supabase/functions/payment-reminders/README.md)).
 - **Dashboard** — totals, 12-month trend, spend by category, spend by property.
 - **Filter & search** — by property, category, date range, or free text.
 - **Export** — Excel (`.xlsx`), CSV, or a formatted PDF report of any filtered view.

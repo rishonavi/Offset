@@ -12,7 +12,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { startOfMonth, format } from 'date-fns'
+import { startOfMonth, subMonths, format } from 'date-fns'
 import { ArrowLeft, Plus, Pencil, Trash2, MapPin, Wallet, Receipt, CalendarDays, Banknote, Scale } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { formatCurrency, formatCompact } from '../lib/format'
@@ -64,6 +64,20 @@ export default function PropertyDetail() {
   }, [items])
   const incomeTotal = useMemo(() => sumAmount(incomeItems), [incomeItems])
   const net = incomeTotal - total
+
+  // Trailing-12-month figures for rental yield.
+  const ttm = useMemo(() => {
+    const start = format(subMonths(new Date(), 12), 'yyyy-MM-dd')
+    const inc = sumAmount(incomeItems.filter((e) => (e.date || '') >= start))
+    const exp = sumAmount(items.filter((e) => (e.date || '') >= start))
+    return { inc, exp, net: inc - exp }
+  }, [items, incomeItems])
+
+  const assetValue = Number(property?.value) || 0
+  const grossYield = assetValue ? (ttm.inc / assetValue) * 100 : null
+  const netYield = assetValue ? (ttm.net / assetValue) * 100 : null
+  const totalRoi = assetValue ? (net / assetValue) * 100 : null
+
   const byCategory = useMemo(() => totalsByCategory(items), [items])
   const monthly = useMemo(() => monthlySeries(items, 12), [items])
 
@@ -156,6 +170,48 @@ export default function PropertyDetail() {
         <StatCard icon={Scale} label="Net" value={formatCurrency(net)} accent={net >= 0 ? '#2F8F6B' : '#C0492F'} />
         <StatCard icon={CalendarDays} label="Spent this month" value={formatCurrency(thisMonth)} accent="#0A1828" />
       </div>
+
+      {/* Value & returns (ROI / yield) */}
+      {assetValue > 0 ? (
+        <Card className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-slate-700">Value &amp; returns</h3>
+            <span className="text-xs text-slate-400">Asset value · {formatCurrency(assetValue)}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+            {[
+              { label: 'Gross yield', v: grossYield, suffix: '% / yr', hint: 'last 12 mo income' },
+              { label: 'Net yield', v: netYield, suffix: '% / yr', hint: 'last 12 mo net' },
+              { label: 'Total ROI', v: totalRoi, suffix: '%', hint: 'net to date' },
+            ].map((m) => (
+              <div key={m.label}>
+                <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">{m.label}</div>
+                <div
+                  className="font-serif text-2xl font-bold"
+                  style={{ color: m.v == null ? '#0A1828' : m.v >= 0 ? '#2F8F6B' : '#C0492F' }}
+                >
+                  {m.v == null ? '—' : `${m.v.toFixed(1)}${m.suffix}`}
+                </div>
+                <div className="text-[0.65rem] text-slate-400">{m.hint}</div>
+              </div>
+            ))}
+            <div>
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">Net to date</div>
+              <div className="font-serif text-2xl font-bold" style={{ color: net >= 0 ? '#2F8F6B' : '#C0492F' }}>
+                {formatCurrency(net)}
+              </div>
+              <div className="text-[0.65rem] text-slate-400">income − expenses</div>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="flex items-center justify-between p-4 text-sm">
+          <span className="text-slate-500">Add an asset value to see ROI &amp; rental yield.</span>
+          <Link to={`/properties/${property.id}/edit`} className="font-medium text-brand hover:underline">
+            Set value
+          </Link>
+        </Card>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

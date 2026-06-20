@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { FileSpreadsheet, FileText, FileType, Upload, Download, Loader2, CheckCircle2, AlertCircle, Cloud, UploadCloud, DownloadCloud } from 'lucide-react'
+import { FileSpreadsheet, FileText, FileType, Upload, Download, CheckCircle2, AlertCircle, Cloud, UploadCloud, DownloadCloud, Landmark } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount } from '../lib/filters'
 import { formatCurrency, formatDate } from '../lib/format'
@@ -32,6 +32,82 @@ export default function Reports() {
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
+
+  // Income matching the same property + date range (category/text don't apply).
+  const incomeFiltered = useMemo(
+    () =>
+      income.filter((e) => {
+        if (filters.propertyId && e.property_id !== filters.propertyId) return false
+        if (filters.from && (e.date || '') < filters.from) return false
+        if (filters.to && (e.date || '') > filters.to) return false
+        return true
+      }),
+    [income, filters],
+  )
+
+  const taxPaid = useMemo(() => filtered.reduce((s, e) => s + (Number(e.tax) || 0), 0), [filtered])
+  const taxCollected = useMemo(() => incomeFiltered.reduce((s, e) => s + (Number(e.tax) || 0), 0), [incomeFiltered])
+  const netTax = taxCollected - taxPaid
+
+  // Per-year statement: income, expenses, net, and tax paid vs collected.
+  const byYear = useMemo(() => {
+    const m = new Map()
+    const row = (y) => {
+      if (!m.has(y)) m.set(y, { year: y, income: 0, expense: 0, taxPaid: 0, taxCollected: 0 })
+      return m.get(y)
+    }
+    for (const e of filtered) {
+      const y = (e.date || '').slice(0, 4)
+      if (!y) continue
+      const r = row(y)
+      r.expense += Number(e.amount) || 0
+      r.taxPaid += Number(e.tax) || 0
+    }
+    for (const e of incomeFiltered) {
+      const y = (e.date || '').slice(0, 4)
+      if (!y) continue
+      const r = row(y)
+      r.income += Number(e.amount) || 0
+      r.taxCollected += Number(e.tax) || 0
+    }
+    return [...m.values()].sort((a, b) => b.year.localeCompare(a.year))
+  }, [filtered, incomeFiltered])
+
+  const downloadYearEndPDF = async () => {
+    const { default: jsPDF } = await import('jspdf')
+    const { default: autoTable } = await import('jspdf-autotable')
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text('Offset — Year-end & tax summary', 14, 18)
+    doc.setFontSize(10)
+    doc.setTextColor(120)
+    const scope = filters.propertyId ? propertyNameById(filters.propertyId) || 'Asset' : 'All assets'
+    doc.text(`${scope} · generated ${new Date().toLocaleDateString()}`, 14, 25)
+    autoTable(doc, {
+      startY: 32,
+      head: [['Year', 'Income', 'Expenses', 'Net', 'Tax collected', 'Tax paid']],
+      body: byYear.map((r) => [
+        r.year,
+        formatCurrency(r.income),
+        formatCurrency(r.expense),
+        formatCurrency(r.income - r.expense),
+        formatCurrency(r.taxCollected),
+        formatCurrency(r.taxPaid),
+      ]),
+      foot: [[
+        'Total',
+        formatCurrency(incomeFiltered.reduce((s, e) => s + (Number(e.amount) || 0), 0)),
+        formatCurrency(total),
+        formatCurrency(incomeFiltered.reduce((s, e) => s + (Number(e.amount) || 0), 0) - total),
+        formatCurrency(taxCollected),
+        formatCurrency(taxPaid),
+      ]],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [10, 24, 40] },
+      footStyles: { fillColor: [245, 245, 245], textColor: 20, fontStyle: 'bold' },
+    })
+    doc.save(`${baseName}-year-end.pdf`)
+  }
 
   const baseName = `property-expenses-${new Date().toISOString().slice(0, 10)}`
   const subtitle = `${filtered.length} expense${filtered.length === 1 ? '' : 's'} · Total ${formatCurrency(total)}`
@@ -117,6 +193,7 @@ export default function Reports() {
           address: p.address || '',
           notes: p.notes || '',
           monthly_budget: p.monthly_budget ?? null,
+          value: p.value ?? null,
         })
         nameToId.set(key, np.id)
         createdProps += 1
@@ -292,6 +369,70 @@ export default function Reports() {
           )}
         </Card>
       </div>
+
+      {/* Tax / GST & year-end summary */}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Landmark size={16} className="text-slate-500" />
+            <h3 className="text-sm font-semibold text-slate-700">Tax &amp; year-end summary</h3>
+          </div>
+          <Button variant="ghost" onClick={downloadYearEndPDF} disabled={byYear.length === 0}>
+            <FileText size={16} className="text-red-600" /> Year-end PDF
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-slate-500">
+          GST/tax totals for the current filter{filters.propertyId ? ` · ${propertyNameById(filters.propertyId) || 'asset'}` : ''}.
+        </p>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="border-l-2 border-emerald-500 pl-3">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">Tax collected</div>
+            <div className="font-serif text-xl font-bold text-emerald-700">{formatCurrency(taxCollected)}</div>
+          </div>
+          <div className="border-l-2 border-gold pl-3">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">Tax paid</div>
+            <div className="font-serif text-xl font-bold text-slate-900">{formatCurrency(taxPaid)}</div>
+          </div>
+          <div className="border-l-2 border-navy pl-3">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">Net tax</div>
+            <div className="font-serif text-xl font-bold" style={{ color: netTax >= 0 ? '#2F8F6B' : '#C0492F' }}>
+              {formatCurrency(netTax)}
+            </div>
+          </div>
+        </div>
+
+        {byYear.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th className="py-2 pr-3 font-semibold">Year</th>
+                  <th className="px-3 py-2 text-right font-semibold">Income</th>
+                  <th className="px-3 py-2 text-right font-semibold">Expenses</th>
+                  <th className="px-3 py-2 text-right font-semibold">Net</th>
+                  <th className="px-3 py-2 text-right font-semibold">Tax coll.</th>
+                  <th className="py-2 pl-3 text-right font-semibold">Tax paid</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {byYear.map((r) => (
+                  <tr key={r.year}>
+                    <td className="py-2 pr-3 font-medium text-slate-800">{r.year}</td>
+                    <td className="px-3 py-2 text-right text-emerald-700">{formatCurrency(r.income)}</td>
+                    <td className="px-3 py-2 text-right text-slate-700">{formatCurrency(r.expense)}</td>
+                    <td className="px-3 py-2 text-right font-semibold" style={{ color: r.income - r.expense >= 0 ? '#2F8F6B' : '#C0492F' }}>
+                      {formatCurrency(r.income - r.expense)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-600">{formatCurrency(r.taxCollected)}</td>
+                    <td className="py-2 pl-3 text-right text-slate-600">{formatCurrency(r.taxPaid)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       {/* Backup & restore */}
       <Card className="p-5">

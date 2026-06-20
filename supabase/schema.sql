@@ -16,8 +16,9 @@ create table if not exists public.properties (
   created_at      timestamptz not null default now()
 );
 
--- Add the budget column to pre-existing installs (safe to re-run).
+-- Add the budget + value columns to pre-existing installs (safe to re-run).
 alter table public.properties add column if not exists monthly_budget numeric(14,2);
+alter table public.properties add column if not exists value          numeric(14,2);
 
 create table if not exists public.expenses (
   id             uuid primary key default gen_random_uuid(),

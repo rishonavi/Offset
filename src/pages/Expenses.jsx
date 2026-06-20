@@ -4,16 +4,25 @@ import { Plus, Receipt, Building2 } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { applyFilters, emptyFilters, sumAmount, hasActiveFilters } from '../lib/filters'
 import { CATEGORIES } from '../lib/constants'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, todayISO } from '../lib/format'
 import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import FilterBar from '../components/FilterBar'
 import ExpenseTable from '../components/ExpenseTable'
 
 export default function Expenses() {
-  const { expenses, properties, loading, deleteExpense, propertyNameById } = useData()
+  const { expenses, properties, loading, deleteExpense, addExpense, updateExpense, propertyNameById } = useData()
   const [filters, setFilters] = useState(emptyFilters)
   const navigate = useNavigate()
+
+  const markPaid = (e) => {
+    const { id, user_id, created_at, ...rest } = e
+    updateExpense(id, { ...rest, status: 'paid', due_date: null })
+  }
+  const duplicate = (e) => {
+    const { id, user_id, created_at, receipt_url, ...rest } = e
+    addExpense({ ...rest, date: todayISO() })
+  }
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])
   const total = useMemo(() => sumAmount(filtered), [filtered])
@@ -74,6 +83,8 @@ export default function Expenses() {
               propertyNameById={propertyNameById}
               onEdit={(e) => navigate(`/expenses/${e.id}/edit`)}
               onDelete={deleteExpense}
+              onMarkSettled={markPaid}
+              onDuplicate={duplicate}
             />
           )}
         </>

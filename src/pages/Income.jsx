@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Banknote, Building2, Search, X } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { sumAmount } from '../lib/filters'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, todayISO } from '../lib/format'
 import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import IncomeTable from '../components/IncomeTable'
@@ -11,9 +11,18 @@ import IncomeTable from '../components/IncomeTable'
 const EMPTY = { propertyId: '', from: '', to: '', q: '' }
 
 export default function Income() {
-  const { income, properties, loading, deleteIncome, propertyNameById } = useData()
+  const { income, properties, loading, deleteIncome, addIncome, updateIncome, propertyNameById } = useData()
   const [filters, setFilters] = useState(EMPTY)
   const navigate = useNavigate()
+
+  const markReceived = (e) => {
+    const { id, user_id, created_at, ...rest } = e
+    updateIncome(id, { ...rest, status: 'received', due_date: null })
+  }
+  const duplicate = (e) => {
+    const { id, user_id, created_at, receipt_url, ...rest } = e
+    addIncome({ ...rest, date: todayISO() })
+  }
 
   const filtered = useMemo(
     () =>
@@ -99,7 +108,14 @@ export default function Income() {
           ) : filtered.length === 0 ? (
             <Card className="p-10 text-center text-sm text-slate-500">No income matches these filters.</Card>
           ) : (
-            <IncomeTable income={filtered} propertyNameById={propertyNameById} onEdit={(e) => navigate(`/income/${e.id}/edit`)} onDelete={deleteIncome} />
+            <IncomeTable
+              income={filtered}
+              propertyNameById={propertyNameById}
+              onEdit={(e) => navigate(`/income/${e.id}/edit`)}
+              onDelete={deleteIncome}
+              onMarkSettled={markReceived}
+              onDuplicate={duplicate}
+            />
           )}
         </>
       )}

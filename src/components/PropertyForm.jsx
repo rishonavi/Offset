@@ -8,6 +8,7 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
     name: initial?.name || '',
     type: initial?.type || ASSET_TYPES[0],
     address: initial?.address || '',
+    value: initial?.value ?? '',
     monthly_budget: initial?.monthly_budget ?? '',
     notes: initial?.notes || '',
   })
@@ -28,6 +29,7 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
       await onSubmit({
         ...form,
         name: form.name.trim(),
+        value: form.value === '' ? null : Number(form.value),
         monthly_budget: form.monthly_budget === '' ? null : Number(form.monthly_budget),
       })
     } catch (err) {
@@ -54,6 +56,24 @@ export default function PropertyForm({ initial, onSubmit, onCancel }) {
 
       <Field label="Address">
         <Input value={form.address} onChange={set('address')} placeholder="Street, area, city" />
+      </Field>
+
+      <Field label="Asset value" hint="Optional — purchase price or current value, used for ROI & yield">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+            {currencySymbol}
+          </span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0"
+            className="pl-8"
+            value={form.value}
+            onChange={set('value')}
+            placeholder="0"
+          />
+        </div>
       </Field>
 
       <Field label="Monthly budget" hint="Optional — used for budget alerts on this property">

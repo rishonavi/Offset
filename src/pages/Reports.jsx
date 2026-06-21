@@ -6,7 +6,8 @@ import { formatCurrency, formatDate } from '../lib/format'
 import { colorForCategory } from '../lib/constants'
 import {
   toExportRows,
-  exportExcel,
+  toIncomeRows,
+  exportWorkbook,
   exportCSV,
   exportPDF,
   parseSpreadsheet,
@@ -114,7 +115,8 @@ export default function Reports() {
 
   const doExport = (kind) => {
     const rows = toExportRows(filtered, propertyNameById)
-    if (kind === 'xlsx') exportExcel(rows, baseName)
+    if (kind === 'xlsx')
+      exportWorkbook({ expenses: rows, income: toIncomeRows(incomeFiltered, propertyNameById) }, baseName)
     if (kind === 'csv') exportCSV(rows, baseName)
     if (kind === 'pdf') exportPDF(rows, { title: 'Offset — Expense Report', subtitle })
   }
@@ -335,6 +337,9 @@ export default function Reports() {
               <FileText size={16} className="text-red-600" /> PDF
             </Button>
           </div>
+          <p className="mt-3 text-[0.7rem] text-slate-400">
+            Excel includes a separate <strong>Income</strong> sheet. CSV/PDF cover expenses; the year-end PDF below covers income, expenses &amp; tax by year.
+          </p>
         </Card>
 
         {/* Import */}

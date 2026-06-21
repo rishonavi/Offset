@@ -183,6 +183,13 @@ export default function Dashboard() {
   const incomeAllTime = useMemo(() => sumAmount(incomePropertyScoped), [incomePropertyScoped])
   const netScoped = incomeTotal - total
   const netAllTime = incomeAllTime - allTimeTotal
+  const portfolioValue = useMemo(
+    () =>
+      properties
+        .filter((p) => !propertyId || p.id === propertyId)
+        .reduce((s, p) => s + (Number(p.value) || 0), 0),
+    [properties, propertyId],
+  )
   const cashflow = useMemo(
     () => monthlyIncomeExpense(propertyScoped, incomePropertyScoped, 12),
     [propertyScoped, incomePropertyScoped],
@@ -274,6 +281,12 @@ export default function Dashboard() {
             <p className="mt-2 text-xs text-white/60">
               {formatCurrency(incomeAllTime)} income · {formatCurrency(allTimeTotal)} expenses
             </p>
+            {portfolioValue > 0 && (
+              <p className="mt-1 text-xs text-white/60">
+                Portfolio value · <span className="font-semibold text-gold">{formatCurrency(portfolioValue)}</span>
+                {' · '}net worth {formatCurrency(portfolioValue + netAllTime)}
+              </p>
+            )}
           </div>
           <div className="border border-white/10 bg-white/5 p-4 backdrop-blur sm:min-w-56">
             <div className="text-[0.65rem] font-semibold uppercase tracking-[1.5px] text-white/50">Spent this month</div>

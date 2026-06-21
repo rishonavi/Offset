@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Banknote, Building2, Search, X } from 'lucide-react'
 import { useData } from '../context/DataContext'
+import { useToast } from '../context/ToastContext'
 import { sumAmount } from '../lib/filters'
 import { formatCurrency, todayISO } from '../lib/format'
 import { Card, EmptyState, Spinner } from '../components/ui'
@@ -14,14 +15,19 @@ export default function Income() {
   const { income, properties, loading, deleteIncome, addIncome, updateIncome, propertyNameById } = useData()
   const [filters, setFilters] = useState(EMPTY)
   const navigate = useNavigate()
+  const toast = useToast()
 
-  const markReceived = (e) => {
+  const markReceived = async (e) => {
     const { id, user_id, created_at, ...rest } = e
-    updateIncome(id, { ...rest, status: 'received', due_date: null })
+    await updateIncome(id, { ...rest, status: 'received', due_date: null })
+    toast('Marked as received', {
+      action: { label: 'Undo', onClick: () => updateIncome(id, { ...rest, status: e.status, due_date: e.due_date || null }) },
+    })
   }
-  const duplicate = (e) => {
+  const duplicate = async (e) => {
     const { id, user_id, created_at, receipt_url, ...rest } = e
-    addIncome({ ...rest, date: todayISO() })
+    const row = await addIncome({ ...rest, date: todayISO(), status: 'received', due_date: null })
+    toast('Income duplicated', { action: { label: 'Undo', onClick: () => deleteIncome(row.id) } })
   }
 
   const filtered = useMemo(

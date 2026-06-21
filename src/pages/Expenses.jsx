@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Receipt, Building2 } from 'lucide-react'
 import { useData } from '../context/DataContext'
+import { useToast } from '../context/ToastContext'
 import { applyFilters, emptyFilters, sumAmount, hasActiveFilters } from '../lib/filters'
 import { CATEGORIES } from '../lib/constants'
 import { formatCurrency, todayISO } from '../lib/format'
@@ -14,14 +15,20 @@ export default function Expenses() {
   const { expenses, properties, loading, deleteExpense, addExpense, updateExpense, propertyNameById } = useData()
   const [filters, setFilters] = useState(emptyFilters)
   const navigate = useNavigate()
+  const toast = useToast()
 
-  const markPaid = (e) => {
+  const markPaid = async (e) => {
     const { id, user_id, created_at, ...rest } = e
-    updateExpense(id, { ...rest, status: 'paid', due_date: null })
+    await updateExpense(id, { ...rest, status: 'paid', due_date: null })
+    toast('Marked as paid', {
+      action: { label: 'Undo', onClick: () => updateExpense(id, { ...rest, status: e.status, due_date: e.due_date || null }) },
+    })
   }
-  const duplicate = (e) => {
+  const duplicate = async (e) => {
+    // Fresh copy dated today, reset to settled (no receipt, no stale due date).
     const { id, user_id, created_at, receipt_url, ...rest } = e
-    addExpense({ ...rest, date: todayISO() })
+    const row = await addExpense({ ...rest, date: todayISO(), status: 'paid', due_date: null })
+    toast('Expense duplicated', { action: { label: 'Undo', onClick: () => deleteExpense(row.id) } })
   }
 
   const filtered = useMemo(() => applyFilters(expenses, filters), [expenses, filters])

@@ -19,6 +19,35 @@ export function toExportRows(expenses, propertyNameById) {
   }))
 }
 
+// Same idea for income rows.
+export function toIncomeRows(income, propertyNameById) {
+  return income.map((e) => ({
+    Date: e.date,
+    Property: propertyNameById(e.property_id) || '—',
+    Source: e.source || '',
+    'From (payer)': e.payer || '',
+    'Payment Method': e.payment_method || '',
+    Description: e.description || '',
+    Amount: Number(e.amount) || 0,
+    'Tax / GST': Number(e.tax) || 0,
+  }))
+}
+
+// Excel workbook with an Expenses sheet and (when present) an Income sheet.
+export function exportWorkbook({ expenses = [], income = [] }, filename = 'offset') {
+  const cols = [{ wch: 12 }, { wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 30 }, { wch: 14 }, { wch: 12 }]
+  const wb = XLSX.utils.book_new()
+  const expWs = XLSX.utils.json_to_sheet(expenses)
+  expWs['!cols'] = cols
+  XLSX.utils.book_append_sheet(wb, expWs, 'Expenses')
+  if (income.length) {
+    const incWs = XLSX.utils.json_to_sheet(income)
+    incWs['!cols'] = cols
+    XLSX.utils.book_append_sheet(wb, incWs, 'Income')
+  }
+  XLSX.writeFile(wb, `${filename}.xlsx`)
+}
+
 function sheetFromRows(rows) {
   const ws = XLSX.utils.json_to_sheet(rows)
   ws['!cols'] = [

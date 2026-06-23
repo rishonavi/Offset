@@ -51,7 +51,7 @@ function StatCard({ icon: Icon, label, value, accent = '#C5A059' }) {
 export default function PropertyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { properties, expenses, income, loading, propertyNameById, deleteProperty, deleteExpense, deleteIncome } = useData()
+  const { properties, expenses, income, loading, propertyNameById, deleteProperty, deleteExpense, deleteIncome, canWrite } = useData()
 
   const property = useMemo(() => properties.find((p) => p.id === id), [properties, id])
   const items = useMemo(() => expenses.filter((e) => e.property_id === id), [expenses, id])
@@ -136,17 +136,19 @@ export default function PropertyDetail() {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to={`/properties/${property.id}/edit`} className="btn-ghost">
-            <Pencil size={15} /> Edit
-          </Link>
-          <Button variant="ghost" onClick={onDeleteProperty} className="text-red-600 hover:bg-red-50">
-            <Trash2 size={15} /> Delete
-          </Button>
-          <Link to={`/expenses/new?asset=${property.id}`} className="btn-primary">
-            <Plus size={16} /> Add expense
-          </Link>
-        </div>
+        {canWrite && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={`/properties/${property.id}/edit`} className="btn-ghost">
+              <Pencil size={15} /> Edit
+            </Link>
+            <Button variant="ghost" onClick={onDeleteProperty} className="text-red-600 hover:bg-red-50">
+              <Trash2 size={15} /> Delete
+            </Button>
+            <Link to={`/expenses/new?asset=${property.id}`} className="btn-primary">
+              <Plus size={16} /> Add expense
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Budget */}
@@ -281,6 +283,7 @@ export default function PropertyDetail() {
             propertyNameById={propertyNameById}
             onEdit={(e) => navigate(`/expenses/${e.id}/edit`)}
             onDelete={deleteExpense}
+            readOnly={!canWrite}
           />
         )}
       </div>
@@ -289,9 +292,11 @@ export default function PropertyDetail() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700">Income ({incomeItems.length})</h3>
-          <Link to={`/income/new?asset=${property.id}`} className="btn-ghost">
-            <Plus size={15} /> Add income
-          </Link>
+          {canWrite && (
+            <Link to={`/income/new?asset=${property.id}`} className="btn-ghost">
+              <Plus size={15} /> Add income
+            </Link>
+          )}
         </div>
         {incomeItems.length === 0 ? (
           <EmptyState
@@ -310,6 +315,7 @@ export default function PropertyDetail() {
             propertyNameById={propertyNameById}
             onEdit={(e) => navigate(`/income/${e.id}/edit`)}
             onDelete={deleteIncome}
+            readOnly={!canWrite}
           />
         )}
       </div>

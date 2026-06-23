@@ -12,7 +12,7 @@ import IncomeTable from '../components/IncomeTable'
 const EMPTY = { propertyId: '', from: '', to: '', q: '' }
 
 export default function Income() {
-  const { income, properties, loading, deleteIncome, addIncome, updateIncome, propertyNameById } = useData()
+  const { income, properties, loading, deleteIncome, addIncome, updateIncome, propertyNameById, canWrite } = useData()
   const [filters, setFilters] = useState(EMPTY)
   const navigate = useNavigate()
   const toast = useToast()
@@ -57,9 +57,11 @@ export default function Income() {
         title="Income"
         subtitle={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}${active ? ' (filtered)' : ''} · ${formatCurrency(total)} received`}
         actions={
-          <Link to="/income/new" className="btn-primary">
-            <Plus size={16} /> Add income
-          </Link>
+          canWrite ? (
+            <Link to="/income/new" className="btn-primary">
+              <Plus size={16} /> Add income
+            </Link>
+          ) : null
         }
       />
 
@@ -121,6 +123,7 @@ export default function Income() {
               onDelete={deleteIncome}
               onMarkSettled={markReceived}
               onDuplicate={duplicate}
+              readOnly={!canWrite}
             />
           )}
         </>

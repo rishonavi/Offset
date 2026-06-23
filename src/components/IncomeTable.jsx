@@ -7,7 +7,7 @@ import { Badge } from './ui'
 import PaymentChip from './PaymentChip'
 import ReceiptViewer from './ReceiptViewer'
 
-export default function IncomeTable({ income, propertyNameById, onEdit, onDelete, onMarkSettled, onDuplicate }) {
+export default function IncomeTable({ income, propertyNameById, onEdit, onDelete, onMarkSettled, onDuplicate, readOnly }) {
   const [viewing, setViewing] = useState(null)
   const confirmDelete = (e) => {
     if (window.confirm(`Delete this ${formatCurrency(e.amount)} income entry? This cannot be undone.`)) {
@@ -55,7 +55,7 @@ export default function IncomeTable({ income, propertyNameById, onEdit, onDelete
                   +{formatCurrency(e.amount)}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className={`flex items-center justify-end gap-1 ${readOnly ? 'hidden' : ''}`}>
                     {onMarkSettled && !isSettled(e, 'income') && (
                       <button
                         onClick={() => onMarkSettled(e)}
@@ -118,7 +118,7 @@ export default function IncomeTable({ income, propertyNameById, onEdit, onDelete
               )}
             </div>
             {e.description && <p className="mt-2 text-sm text-slate-500">{e.description}</p>}
-            <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-3">
+            <div className={`mt-3 flex-wrap justify-end gap-3 border-t border-slate-100 pt-3 ${readOnly ? 'hidden' : 'flex'}`}>
               {onMarkSettled && !isSettled(e, 'income') && (
                 <button onClick={() => onMarkSettled(e)} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
                   <CheckCircle2 size={13} /> Mark received

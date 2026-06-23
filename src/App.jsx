@@ -2,12 +2,14 @@ import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
+import { WorkspaceProvider } from './context/WorkspaceContext'
 import { PlanProvider } from './context/PlanContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
 
 const Login = lazy(() => import('./pages/Login'))
+const Landing = lazy(() => import('./pages/Landing'))
 const Pricing = lazy(() => import('./pages/Pricing'))
 const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })))
 const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
@@ -44,6 +46,14 @@ export default function App() {
 
       {/* Public marketing / legal */}
       <Route
+        path="/welcome"
+        element={
+          <Suspense fallback={<FullScreen />}>
+            <Landing />
+          </Suspense>
+        }
+      />
+      <Route
         path="/pricing"
         element={
           <Suspense fallback={<FullScreen />}>
@@ -72,11 +82,13 @@ export default function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <DataProvider>
-              <PlanProvider>
-                <Layout />
-              </PlanProvider>
-            </DataProvider>
+            <WorkspaceProvider>
+              <DataProvider>
+                <PlanProvider>
+                  <Layout />
+                </PlanProvider>
+              </DataProvider>
+            </WorkspaceProvider>
           </ProtectedRoute>
         }
       >

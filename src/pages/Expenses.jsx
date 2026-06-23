@@ -12,7 +12,7 @@ import FilterBar from '../components/FilterBar'
 import ExpenseTable from '../components/ExpenseTable'
 
 export default function Expenses() {
-  const { expenses, properties, loading, deleteExpense, addExpense, updateExpense, propertyNameById } = useData()
+  const { expenses, properties, loading, deleteExpense, addExpense, updateExpense, propertyNameById, canWrite } = useData()
   const [filters, setFilters] = useState(emptyFilters)
   const navigate = useNavigate()
   const toast = useToast()
@@ -50,9 +50,11 @@ export default function Expenses() {
           hasActiveFilters(filters) ? ' (filtered)' : ''
         } · ${formatCurrency(total)}`}
         actions={
-          <Link to="/expenses/new" className="btn-primary">
-            <Plus size={16} /> Add expense
-          </Link>
+          canWrite ? (
+            <Link to="/expenses/new" className="btn-primary">
+              <Plus size={16} /> Add expense
+            </Link>
+          ) : null
         }
       />
 
@@ -92,6 +94,7 @@ export default function Expenses() {
               onDelete={deleteExpense}
               onMarkSettled={markPaid}
               onDuplicate={duplicate}
+              readOnly={!canWrite}
             />
           )}
         </>

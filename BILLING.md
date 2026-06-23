@@ -60,11 +60,27 @@ To test locally, use the [Stripe CLI](https://stripe.com/docs/stripe-cli)
 (`stripe listen --forward-to localhost:3000/api/stripe/webhook`) and Stripe test
 cards.
 
-## Not yet done (next steps for full commercial)
+## Teams / shared access (read-only)
 
-- **Teams / shared access** (invite an accountant) — needs an org model + RLS
-  rework; planned as a separate change.
-- **Public marketing landing at the root domain** (today `/` is the app; the
-  marketing/pricing/legal pages live at `/pricing`, `/terms`, `/privacy`).
-- **Server-side limit enforcement** and **Google OAuth verification** for public
-  Drive/Gmail use.
+Run [`supabase/teams.sql`](./supabase/teams.sql) (after `schema.sql`) to enable
+sharing. It's **additive and owner-preserving** — it only grants members *read*
+access; owners keep full control and shared users are read-only.
+
+Then in **Settings → Team & sharing**, invite someone by email (they need an
+Offset account). They'll see a workspace switcher in the sidebar and can view —
+but not change — your records. The invite uses `/api/team/invite` with
+`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (same server vars as billing).
+
+## Marketing landing
+
+Logged-out visitors now land on a marketing page (`/welcome`, also linked as the
+redirect target) with `/pricing`, `/terms`, `/privacy`.
+
+## Still to do (next steps)
+
+- **Editor (write) sharing** — today sharing is read-only; letting a member edit
+  needs writes to target the owner's workspace (a deliberate, separate change).
+- **Server-side limit enforcement** — plan limits are enforced in the browser;
+  add the same checks in the serverless functions for hard enforcement.
+- **Google OAuth verification** — to let the public (not just test users) connect
+  Drive/Gmail, complete Google's verification / restricted-scope assessment.

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Plus, Banknote, Building2 } from 'lucide-react'
+import { ArrowLeft, Plus, Banknote, Building2, Eye } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
@@ -10,7 +10,7 @@ export default function IncomeFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { income, properties, loading, addIncome, updateIncome } = useData()
+  const { income, properties, loading, addIncome, updateIncome, canWrite } = useData()
 
   // Distinct payer names already used, for the autocomplete suggestions.
   const payers = useMemo(() => {
@@ -23,6 +23,23 @@ export default function IncomeFormPage() {
   }, [income])
 
   if (loading) return <Spinner />
+
+  if (!canWrite) {
+    return (
+      <div className="animate-fade-in">
+        <EmptyState
+          icon={Eye}
+          title="Read-only workspace"
+          subtitle="You’re viewing a shared workspace. Switch to your own workspace to add or edit records."
+          action={
+            <Link to="/income" className="btn-primary">
+              Back to income
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
 
   const editing = id ? income.find((e) => e.id === id) : null
   const goBack = () => navigate(-1)

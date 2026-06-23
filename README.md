@@ -27,6 +27,8 @@ Storage) as the cloud backend.
 - **Export** — Excel (`.xlsx`), CSV, or a formatted PDF report of any filtered view.
 - **Import** — bulk-load expenses from an Excel/CSV file (new properties are created automatically).
 - **Private login** — only you can see your data (enforced by row-level security).
+- **Share read-only** — invite an accountant/partner to view your workspace (Settings → Team; run `supabase/teams.sql`).
+- **Plans & billing** — optional Free/Pro tiers with Stripe (see `BILLING.md`).
 - **Currency** — defaults to ₹ INR; change it with one env var.
 
 ---

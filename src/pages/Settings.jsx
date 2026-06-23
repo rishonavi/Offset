@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Crown, LogOut, Download, Trash2, Check, CreditCard, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Crown, LogOut, Download, Trash2, Check, CreditCard, ShieldCheck, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { usePlan } from '../context/PlanContext'
 import { useData } from '../context/DataContext'
 import { useToast } from '../context/ToastContext'
 import { startCheckout, openBillingPortal } from '../lib/billing'
+import { listTeam, inviteMember, removeMembership } from '../lib/team'
 import { formatCurrency } from '../lib/format'
 import { Card, Button, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
@@ -15,6 +16,46 @@ export default function Settings() {
   const { properties, expenses, income, loading, deleteProperty } = useData()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
+  const [team, setTeam] = useState({ sharedByMe: [], sharedWithMe: [] })
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviting, setInviting] = useState(false)
+
+  const loadTeam = async () => {
+    try {
+      setTeam(await listTeam())
+    } catch {
+      /* sharing not set up yet */
+    }
+  }
+  useEffect(() => {
+    if (isCloud) loadTeam()
+  }, [isCloud])
+
+  const invite = async (e) => {
+    e.preventDefault()
+    const email = inviteEmail.trim()
+    if (!email) return
+    setInviting(true)
+    try {
+      await inviteMember(email)
+      setInviteEmail('')
+      await loadTeam()
+      toast('Shared — they can now view your workspace.')
+    } catch (err) {
+      toast(err?.message || 'Could not share.', { type: 'error' })
+    } finally {
+      setInviting(false)
+    }
+  }
+  const unshare = async (id) => {
+    try {
+      await removeMembership(id)
+      await loadTeam()
+      toast('Access removed.')
+    } catch (err) {
+      toast(err?.message || 'Could not remove access.', { type: 'error' })
+    }
+  }
 
   if (loading) return <Spinner />
 
@@ -134,6 +175,51 @@ export default function Settings() {
           )}
         </div>
       </Card>
+
+      {/* Team / sharing (cloud only) */}
+      {isCloud && (
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-slate-700">Team &amp; sharing</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Invite someone (e.g. your accountant) to <strong>view</strong> your workspace — read-only. They’ll need an Offset account.
+          </p>
+          <form onSubmit={invite} className="mt-3 flex flex-wrap gap-2">
+            <input
+              type="email"
+              className="field-input min-w-0 flex-1"
+              placeholder="their@email.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            <Button type="submit" loading={inviting}>
+              <UserPlus size={16} /> Share
+            </Button>
+          </form>
+
+          {team.sharedByMe.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[1px] text-slate-500">People with access</div>
+              <div className="mt-1 divide-y divide-slate-100">
+                {team.sharedByMe.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="truncate text-slate-700">{m.member_email || m.member_id}</span>
+                    <button onClick={() => unshare(m.id)} className="shrink-0 text-xs font-medium text-red-600 hover:underline">
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {team.sharedWithMe.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-3 text-sm text-slate-600">
+              <span className="font-medium">Shared with you:</span>{' '}
+              {team.sharedWithMe.map((m) => m.owner_email || m.owner_id).join(', ')} — switch from the workspace selector in the sidebar.
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Data */}
       <Card className="p-5">

@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (isCloud && !user) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/welcome" replace />
   }
 
   return children

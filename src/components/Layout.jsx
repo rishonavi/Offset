@@ -17,9 +17,12 @@ import {
   Plus,
   Sun,
   Moon,
+  Eye,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useData } from '../context/DataContext'
+import { useWorkspace } from '../context/WorkspaceContext'
 import { Spinner } from './ui'
 
 const NAV = [
@@ -94,8 +97,28 @@ function QuickAdd({ onNavigate }) {
   )
 }
 
+function WorkspaceSwitcher() {
+  const { workspaces, activeOwner, setActiveOwner, hasShared } = useWorkspace()
+  if (!hasShared) return null
+  return (
+    <select
+      value={activeOwner}
+      onChange={(e) => setActiveOwner(e.target.value)}
+      className="mt-4 w-full border border-white/15 bg-white/5 px-2 py-2 text-xs text-white/90"
+      title="Switch workspace"
+    >
+      {workspaces.map((w) => (
+        <option key={w.ownerId} value={w.ownerId} className="text-slate-900">
+          {w.own ? 'My workspace' : `Shared · ${w.label}`}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 export default function Layout() {
   const { user, signOut, isCloud } = useAuth()
+  const { canWrite } = useData()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -105,7 +128,8 @@ export default function Layout() {
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen flex-col border-r border-navy-dark bg-navy px-4 py-5 lg:flex">
         <Brand />
-        <QuickAdd />
+        <WorkspaceSwitcher />
+        {canWrite && <QuickAdd />}
         <div className="mt-6 flex-1">
           <NavItems />
         </div>
@@ -142,7 +166,8 @@ export default function Layout() {
                 <X size={20} />
               </button>
             </div>
-            <QuickAdd onNavigate={() => setMobileOpen(false)} />
+            <WorkspaceSwitcher />
+            {canWrite && <QuickAdd onNavigate={() => setMobileOpen(false)} />}
             <div className="mt-6 flex-1">
               <NavItems onNavigate={() => setMobileOpen(false)} />
             </div>
@@ -153,6 +178,14 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="min-w-0">
+        {!canWrite && (
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-2 text-xs text-slate-600 lg:px-8">
+            <Eye size={14} className="shrink-0" />
+            <span>
+              You’re viewing a <strong>shared workspace</strong> — read-only.
+            </span>
+          </div>
+        )}
         {!isCloud && (
           <div className="flex items-center gap-2 border-b border-gold/20 bg-amber-50 px-4 py-2 text-xs text-amber-800 lg:px-8">
             <Info size={14} className="shrink-0" />
@@ -170,13 +203,15 @@ export default function Layout() {
       </main>
 
       {/* Mobile floating quick-add */}
-      <Link
-        to="/expenses/new"
-        className="fixed bottom-5 right-5 z-30 grid h-14 w-14 place-items-center bg-gold text-navy shadow-lg shadow-navy/40 transition active:scale-95 lg:hidden"
-        aria-label="Add expense"
-      >
-        <Plus size={26} />
-      </Link>
+      {canWrite && (
+        <Link
+          to="/expenses/new"
+          className="fixed bottom-5 right-5 z-30 grid h-14 w-14 place-items-center bg-gold text-navy shadow-lg shadow-navy/40 transition active:scale-95 lg:hidden"
+          aria-label="Add expense"
+        >
+          <Plus size={26} />
+        </Link>
+      )}
     </div>
   )
 }

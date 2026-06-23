@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Crown } from 'lucide-react'
+import { ArrowLeft, Building2, Crown, Eye } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { usePlan } from '../context/PlanContext'
 import { Card, EmptyState, Spinner } from '../components/ui'
@@ -9,10 +9,27 @@ import PropertyForm from '../components/PropertyForm'
 export default function AssetFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { properties, loading, addProperty, updateProperty } = useData()
+  const { properties, loading, addProperty, updateProperty, canWrite } = useData()
   const plan = usePlan()
 
   if (loading) return <Spinner />
+
+  if (!canWrite) {
+    return (
+      <div className="animate-fade-in">
+        <EmptyState
+          icon={Eye}
+          title="Read-only workspace"
+          subtitle="You’re viewing a shared workspace. Switch to your own workspace to add or edit assets."
+          action={
+            <Link to="/properties" className="btn-primary">
+              Back to assets
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
 
   const editing = id ? properties.find((p) => p.id === id) : null
   const goBack = () => navigate(-1)

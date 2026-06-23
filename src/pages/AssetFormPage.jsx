@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2 } from 'lucide-react'
+import { ArrowLeft, Building2, Crown } from 'lucide-react'
 import { useData } from '../context/DataContext'
+import { usePlan } from '../context/PlanContext'
 import { Card, EmptyState, Spinner } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import PropertyForm from '../components/PropertyForm'
@@ -9,11 +10,13 @@ export default function AssetFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { properties, loading, addProperty, updateProperty } = useData()
+  const plan = usePlan()
 
   if (loading) return <Spinner />
 
   const editing = id ? properties.find((p) => p.id === id) : null
   const goBack = () => navigate(-1)
+  const atAssetLimit = !editing && plan && !plan.canAddAsset(properties.length)
 
   if (id && !editing) {
     return (
@@ -44,9 +47,24 @@ export default function AssetFormPage() {
         <ArrowLeft size={15} /> Back to assets
       </Link>
       <PageHeader title={editing ? 'Edit asset' : 'Add asset'} />
-      <Card className="max-w-2xl p-5 sm:p-7">
-        <PropertyForm initial={editing} onSubmit={onSubmit} onCancel={goBack} />
-      </Card>
+      {atAssetLimit ? (
+        <Card className="flex max-w-2xl flex-col items-start gap-3 p-6">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-gold/15 text-gold">
+            <Crown size={20} />
+          </span>
+          <div>
+            <p className="font-semibold text-slate-800">You’ve reached the {plan.info.limits.assets}-asset limit on the Free plan.</p>
+            <p className="mt-1 text-sm text-slate-500">Upgrade to Pro for unlimited assets.</p>
+          </div>
+          <Link to="/settings" className="btn-primary">
+            <Crown size={16} /> Upgrade to Pro
+          </Link>
+        </Card>
+      ) : (
+        <Card className="max-w-2xl p-5 sm:p-7">
+          <PropertyForm initial={editing} onSubmit={onSubmit} onCancel={goBack} />
+        </Card>
+      )}
     </div>
   )
 }

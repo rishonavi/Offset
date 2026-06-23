@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Mail, Loader2, Sparkles, Plus, X, Building2, Inbox } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { useToast } from '../context/ToastContext'
+import { usePlan } from '../context/PlanContext'
 import { db } from '../lib/storage'
 import { CATEGORIES } from '../lib/constants'
 import { currencySymbol, todayISO } from '../lib/format'
@@ -13,6 +14,7 @@ import PageHeader from '../components/PageHeader'
 export default function ImportBills() {
   const { properties, loading, addExpense } = useData()
   const toast = useToast()
+  const plan = usePlan()
   const [rows, setRows] = useState([])
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
@@ -103,7 +105,20 @@ export default function ImportBills() {
         subtitle="Offset reads recent invoice/receipt emails, lets Gemini extract the details, and you add them with one tap."
       />
 
-      {!gmailConfigured ? (
+      {plan && plan.billingEnabled && !plan.can('gmailImport') ? (
+        <Card className="flex flex-col items-start gap-3 p-6">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-gold/15 text-gold">
+            <Mail size={20} />
+          </span>
+          <div>
+            <p className="font-semibold text-slate-800">Importing bills from Gmail is a Pro feature.</p>
+            <p className="mt-1 text-sm text-slate-500">Upgrade to read invoices straight from your inbox with Gemini.</p>
+          </div>
+          <Link to="/settings" className="btn-primary">
+            Upgrade to Pro
+          </Link>
+        </Card>
+      ) : !gmailConfigured ? (
         <Card className="p-5 text-sm text-slate-600">
           <p className="font-semibold text-slate-800">Gmail import isn’t set up yet.</p>
           <p className="mt-2">

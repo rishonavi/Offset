@@ -42,6 +42,15 @@ export async function signOut() {
   /* nothing to do in demo mode */
 }
 
+// ── Plan (commercial tier) ─────────────────────────────────────────
+export async function getPlan() {
+  return localStorage.getItem('pl_plan') || 'free'
+}
+export async function setPlan(plan) {
+  localStorage.setItem('pl_plan', plan)
+  return plan
+}
+
 // ── Properties ─────────────────────────────────────────────────────
 export async function getProperties() {
   return read(PROPS_KEY).sort((a, b) => (a.name || '').localeCompare(b.name || ''))

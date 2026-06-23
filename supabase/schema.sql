@@ -84,6 +84,20 @@ alter table public.income   add column if not exists due_date date;
 alter table public.expenses add column if not exists tax numeric(14,2);
 alter table public.income   add column if not exists tax numeric(14,2);
 
+-- ── Billing / plan (commercial tiers; written by the Stripe webhook) ─
+create table if not exists public.profiles (
+  user_id            uuid primary key references auth.users(id) on delete cascade,
+  plan               text not null default 'free',
+  stripe_customer_id text,
+  status             text,
+  updated_at         timestamptz default now()
+);
+alter table public.profiles enable row level security;
+-- Users may READ their own plan; only the service role (Stripe webhook) writes.
+drop policy if exists "own profile read" on public.profiles;
+create policy "own profile read" on public.profiles
+  for select using (auth.uid() = user_id);
+
 -- ── Receipt storage (private bucket) ─────────────────────────────
 insert into storage.buckets (id, name, public)
 values ('receipts', 'receipts', false)

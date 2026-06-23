@@ -8,6 +8,7 @@ import {
   FileText,
   MailPlus,
   PieChart,
+  Settings as SettingsIcon,
   LogOut,
   Menu,
   X,
@@ -29,6 +30,7 @@ const NAV = [
   { to: '/bills', label: 'Bills', icon: FileText },
   { to: '/import', label: 'Import from Gmail', icon: MailPlus },
   { to: '/reports', label: 'Reports & Export', icon: PieChart },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ]
 
 function NavItems({ onNavigate }) {

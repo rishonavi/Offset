@@ -49,6 +49,22 @@ export async function signOut() {
   if (error) throw error
 }
 
+// ── Plan (commercial tier; set by the Stripe webhook) ──────────────
+export async function getPlan() {
+  try {
+    const user_id = await requireUserId()
+    const { data } = await supabase.from('profiles').select('plan').eq('user_id', user_id).maybeSingle()
+    return data?.plan || 'free'
+  } catch {
+    return 'free'
+  }
+}
+// In cloud mode the plan is authoritative (Stripe → webhook → profiles), so a
+// client-side setter is intentionally a no-op.
+export async function setPlan() {
+  /* managed by Stripe webhook */
+}
+
 // ── Properties ─────────────────────────────────────────────────────
 export async function getProperties() {
   const { data, error } = await supabase.from('properties').select('*').order('name')

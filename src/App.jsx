@@ -2,11 +2,15 @@ import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
+import { PlanProvider } from './context/PlanContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
 
 const Login = lazy(() => import('./pages/Login'))
+const Pricing = lazy(() => import('./pages/Pricing'))
+const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })))
+const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Properties = lazy(() => import('./pages/Properties'))
 const PropertyDetail = lazy(() => import('./pages/PropertyDetail'))
@@ -18,6 +22,7 @@ const IncomeFormPage = lazy(() => import('./pages/IncomeFormPage'))
 const Bills = lazy(() => import('./pages/Bills'))
 const ImportBills = lazy(() => import('./pages/ImportBills'))
 const Reports = lazy(() => import('./pages/Reports'))
+const Settings = lazy(() => import('./pages/Settings'))
 
 export default function App() {
   const { isCloud } = useAuth()
@@ -37,12 +42,40 @@ export default function App() {
         }
       />
 
+      {/* Public marketing / legal */}
+      <Route
+        path="/pricing"
+        element={
+          <Suspense fallback={<FullScreen />}>
+            <Pricing />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/terms"
+        element={
+          <Suspense fallback={<FullScreen />}>
+            <Terms />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/privacy"
+        element={
+          <Suspense fallback={<FullScreen />}>
+            <Privacy />
+          </Suspense>
+        }
+      />
+
       <Route
         path="/"
         element={
           <ProtectedRoute>
             <DataProvider>
-              <Layout />
+              <PlanProvider>
+                <Layout />
+              </PlanProvider>
             </DataProvider>
           </ProtectedRoute>
         }
@@ -61,6 +94,7 @@ export default function App() {
         <Route path="bills" element={<Bills />} />
         <Route path="import" element={<ImportBills />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

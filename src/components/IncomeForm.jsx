@@ -3,6 +3,7 @@ import { Paperclip, X, Loader2, Sparkles, Camera, Upload } from 'lucide-react'
 import { INCOME_SOURCES, PAYMENT_METHODS } from '../lib/constants'
 import { currencySymbol, todayISO } from '../lib/format'
 import { db } from '../lib/storage'
+import { usePlan } from '../context/PlanContext'
 import { Field, Input, Select, Textarea, Button } from './ui'
 
 export default function IncomeForm({ initial, properties, payers = [], defaultPropertyId, onSubmit, onCancel }) {
@@ -28,6 +29,7 @@ export default function IncomeForm({ initial, properties, payers = [], defaultPr
   const [scanMsg, setScanMsg] = useState(null)
   const fileRef = useRef(null)
   const cameraRef = useRef(null)
+  const plan = usePlan()
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -56,12 +58,17 @@ export default function IncomeForm({ initial, properties, payers = [], defaultPr
 
   const runScan = async () => {
     if (!file) return
+    if (plan && !plan.canScan()) {
+      setScanMsg(`You’ve used all ${plan.scanLimit} AI scans this month — upgrade to Pro for unlimited scanning (Settings).`)
+      return
+    }
     setScanning(true)
     setScanMsg(null)
     setScanPct(0)
     try {
       const { scanReceipt, scanSourceNote } = await import('../lib/ocr')
       const parsed = await scanReceipt(file, (p) => setScanPct(Math.round(p * 100)))
+      if (parsed.source === 'ai') plan?.recordScan?.()
       setForm((f) => ({
         ...f,
         amount: parsed.amount != null ? String(parsed.amount) : f.amount,
